@@ -28,6 +28,10 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
+import com.meddiary.data.FamilyMember
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -57,6 +61,8 @@ fun HomeScreen(
     val checkups by viewModel.allCheckups.collectAsState()
     
     var showAddPersonDialog by remember { mutableStateOf(false) }
+    var showEditPersonDialog by remember { mutableStateOf(false) }
+    var editingMember by remember { mutableStateOf<FamilyMember?>(null) }
     var expandedPersonDropdown by remember { mutableStateOf(false) }
 
     val personUpcomingAppointments = remember(upcomingAppointments, selectedPerson) {
@@ -143,57 +149,65 @@ fun HomeScreen(
                             expanded = expandedPersonDropdown,
                             onDismissRequest = { expandedPersonDropdown = false }
                         ) {
-                            // Family Members List
-                            familyMembers.forEach { member ->
-                                DropdownMenuItem(
-                                    text = { Text(member.name + " (${member.relation})") },
-                                    onClick = {
-                                        viewModel.selectPerson(member.name)
-                                        expandedPersonDropdown = false
-                                    }
-                                )
-                            }
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(imageVector = Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Mitglied hinzufügen")
-                                    }
-                                },
-                                onClick = {
-                                    showAddPersonDialog = true
-                                    expandedPersonDropdown = false
-                                }
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Backup exportieren (ZIP)")
-                                    }
-                                },
-                                onClick = {
-                                    exportBackupLauncher.launch("MedDiary_Backup_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.zip")
-                                    expandedPersonDropdown = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(imageVector = Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(18.dp))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Backup importieren (ZIP)")
-                                    }
-                                },
-                                onClick = {
-                                    importBackupLauncher.launch(arrayOf("application/zip"))
-                                    expandedPersonDropdown = false
-                                }
-                            )
+                             // Family Members List
+                             familyMembers.forEach { member ->
+                                 DropdownMenuItem(
+                                     text = { Text(member.name + " (${member.relation}) bearbeiten") },
+                                     leadingIcon = {
+                                         Icon(
+                                             imageVector = Icons.Default.Edit,
+                                             contentDescription = null,
+                                             modifier = Modifier.size(18.dp)
+                                         )
+                                     },
+                                     onClick = {
+                                         editingMember = member
+                                         showEditPersonDialog = true
+                                         expandedPersonDropdown = false
+                                     }
+                                 )
+                             }
+                             HorizontalDivider()
+                             DropdownMenuItem(
+                                 text = {
+                                     Row(verticalAlignment = Alignment.CenterVertically) {
+                                         Icon(imageVector = Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                                         Spacer(modifier = Modifier.width(8.dp))
+                                         Text("Mitglied hinzufügen")
+                                     }
+                                 },
+                                 onClick = {
+                                     showAddPersonDialog = true
+                                     expandedPersonDropdown = false
+                                 }
+                             )
+                             HorizontalDivider()
+                             DropdownMenuItem(
+                                 text = {
+                                     Row(verticalAlignment = Alignment.CenterVertically) {
+                                         Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
+                                         Spacer(modifier = Modifier.width(8.dp))
+                                         Text("Backup exportieren (ZIP)")
+                                     }
+                                 },
+                                 onClick = {
+                                     exportBackupLauncher.launch("MedDiary_Backup_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.zip")
+                                     expandedPersonDropdown = false
+                                 }
+                             )
+                             DropdownMenuItem(
+                                 text = {
+                                     Row(verticalAlignment = Alignment.CenterVertically) {
+                                         Icon(imageVector = Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(18.dp))
+                                         Spacer(modifier = Modifier.width(8.dp))
+                                         Text("Backup importieren (ZIP)")
+                                     }
+                                 },
+                                 onClick = {
+                                     importBackupLauncher.launch(arrayOf("application/zip"))
+                                     expandedPersonDropdown = false
+                                 }
+                             )
                         }
                     }
                 },
@@ -575,6 +589,154 @@ fun HomeScreen(
                             Column {
                                 Text("Erwachsener", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                                 Text("Lädt Standard-Vorsorgeuntersuchungen", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    // Edit Family Member Dialog
+    if (showEditPersonDialog && editingMember != null) {
+        val member = editingMember!!
+        var relationKind by remember(member) { mutableStateOf(member.relation == "Kind") }
+        var birthYearStr by remember(member) { mutableStateOf(member.birthYear.toString()) }
+        var selectedGender by remember(member) { mutableStateOf(member.gender) }
+
+        AlertDialog(
+            onDismissRequest = { showEditPersonDialog = false },
+            title = { Text("Familienmitglied bearbeiten") },
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (familyMembers.size > 1) {
+                        TextButton(
+                            onClick = {
+                                if (selectedPerson == member.name) {
+                                    val nextPerson = familyMembers.firstOrNull { it.name != member.name }?.name ?: ""
+                                    viewModel.selectPerson(nextPerson)
+                                }
+                                viewModel.deleteFamilyMember(member)
+                                showEditPersonDialog = false
+                            },
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("Löschen")
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.width(1.dp))
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { showEditPersonDialog = false }) {
+                            Text("Abbrechen")
+                        }
+                        Button(
+                            onClick = {
+                                val relation = if (relationKind) "Kind" else if (member.relation == "Ich") "Ich" else "Partner"
+                                val birthYear = birthYearStr.toIntOrNull() ?: member.birthYear
+                                viewModel.updateFamilyMember(
+                                    FamilyMember(
+                                        name = member.name,
+                                        relation = relation,
+                                        birthYear = birthYear,
+                                        gender = selectedGender
+                                    )
+                                )
+                                showEditPersonDialog = false
+                            },
+                            enabled = birthYearStr.isNotBlank()
+                        ) {
+                            Text("Speichern")
+                        }
+                    }
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedTextField(
+                        value = member.name,
+                        onValueChange = {},
+                        label = { Text("Name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = false
+                    )
+
+                    OutlinedTextField(
+                        value = birthYearStr,
+                        onValueChange = { birthYearStr = it.filter { char -> char.isDigit() } },
+                        label = { Text("Geburtsjahr") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text("Geschlecht:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(selected = selectedGender == "ALL", onClick = { selectedGender = "ALL" })
+                                Text("Divers", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(selected = selectedGender == "M", onClick = { selectedGender = "M" })
+                                Text("Männlich", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(selected = selectedGender == "F", onClick = { selectedGender = "F" })
+                                Text("Weiblich", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+
+                    if (member.relation != "Ich") {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text("Profil-Typ:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = relationKind,
+                                    onClick = { relationKind = true }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("Kind", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                    Text("Lädt U-Untersuchungen (Kinderheilkunde)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = !relationKind,
+                                    onClick = { relationKind = false }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("Erwachsener (Partner)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                    Text("Lädt Standard-Vorsorgeuntersuchungen", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
                     }

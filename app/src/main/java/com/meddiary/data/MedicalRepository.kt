@@ -61,6 +61,10 @@ class MedicalRepository(
         familyMemberDao.deleteFamilyMember(familyMember)
     }
 
+    suspend fun updateFamilyMember(familyMember: FamilyMember) {
+        familyMemberDao.updateFamilyMember(familyMember)
+    }
+
     // Vaccination operations
     fun getVaccinationsForPerson(personName: String): Flow<List<Vaccination>> {
         return vaccinationDao.getVaccinationsForPerson(personName)

@@ -11,6 +11,9 @@ interface FamilyMemberDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertFamilyMember(familyMember: FamilyMember)
 
+    @Update
+    suspend fun updateFamilyMember(familyMember: FamilyMember)
+
     @Delete
     suspend fun deleteFamilyMember(familyMember: FamilyMember)
 }

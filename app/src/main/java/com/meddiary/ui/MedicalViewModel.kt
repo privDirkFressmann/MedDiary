@@ -183,6 +183,12 @@ class MedicalViewModel(
         }
     }
 
+    fun updateFamilyMember(familyMember: FamilyMember) {
+        viewModelScope.launch {
+            repository.updateFamilyMember(familyMember)
+        }
+    }
+
     // Vaccination operations
     fun addVaccination(
         personName: String,
