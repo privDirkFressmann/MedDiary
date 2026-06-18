@@ -5,13 +5,14 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [Appointment::class, Checkup::class, FamilyMember::class, Attachment::class], version = 4, exportSchema = false)
+@Database(entities = [Appointment::class, Checkup::class, FamilyMember::class, Attachment::class, Vaccination::class], version = 5, exportSchema = false)
 abstract class MedicalDatabase : RoomDatabase() {
 
     abstract fun appointmentDao(): AppointmentDao
     abstract fun checkupDao(): CheckupDao
     abstract fun familyMemberDao(): FamilyMemberDao
     abstract fun attachmentDao(): AttachmentDao
+    abstract fun vaccinationDao(): VaccinationDao
 
     companion object {
         @Volatile

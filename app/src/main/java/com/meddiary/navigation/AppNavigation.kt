@@ -11,6 +11,7 @@ import com.meddiary.ui.screens.AddEditAppointmentScreen
 import com.meddiary.ui.screens.CalendarScreen
 import com.meddiary.ui.screens.CheckupsScreen
 import com.meddiary.ui.screens.HomeScreen
+import com.meddiary.ui.screens.VaccinationsScreen
 
 @Composable
 fun AppNavigation(
@@ -32,6 +33,9 @@ fun AppNavigation(
                 },
                 onNavigateToCalendar = {
                     navController.navigate(Screen.Calendar.route)
+                },
+                onNavigateToVaccinations = {
+                    navController.navigate(Screen.Vaccinations.route)
                 }
             )
         }
@@ -72,6 +76,15 @@ fun AppNavigation(
                 onNavigateToAddAppointment = { id ->
                     navController.navigate(Screen.AddEditAppointment.passId(id))
                 },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = Screen.Vaccinations.route) {
+            VaccinationsScreen(
+                viewModel = viewModel,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

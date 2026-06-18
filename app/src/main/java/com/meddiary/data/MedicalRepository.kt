@@ -6,7 +6,8 @@ class MedicalRepository(
     private val appointmentDao: AppointmentDao,
     private val checkupDao: CheckupDao,
     private val familyMemberDao: FamilyMemberDao,
-    private val attachmentDao: AttachmentDao
+    private val attachmentDao: AttachmentDao,
+    private val vaccinationDao: VaccinationDao
 ) {
     val allAppointments: Flow<List<Appointment>> = appointmentDao.getAllAppointments()
     
@@ -51,13 +52,30 @@ class MedicalRepository(
     // Family Member operations
     val allFamilyMembers: Flow<List<FamilyMember>> = familyMemberDao.getAllFamilyMembers()
 
-    suspend fun addFamilyMemberWithCheckups(name: String, relation: String, checkups: List<Checkup>) {
-        familyMemberDao.insertFamilyMember(FamilyMember(name, relation))
+    suspend fun addFamilyMemberWithCheckups(name: String, relation: String, birthYear: Int, gender: String, checkups: List<Checkup>) {
+        familyMemberDao.insertFamilyMember(FamilyMember(name, relation, birthYear, gender))
         checkupDao.insertCheckups(checkups)
     }
 
     suspend fun deleteFamilyMember(familyMember: FamilyMember) {
         familyMemberDao.deleteFamilyMember(familyMember)
+    }
+
+    // Vaccination operations
+    fun getVaccinationsForPerson(personName: String): Flow<List<Vaccination>> {
+        return vaccinationDao.getVaccinationsForPerson(personName)
+    }
+
+    fun getAllVaccinations(): Flow<List<Vaccination>> {
+        return vaccinationDao.getAllVaccinations()
+    }
+
+    suspend fun insertVaccination(vaccination: Vaccination): Long {
+        return vaccinationDao.insertVaccination(vaccination)
+    }
+
+    suspend fun deleteVaccination(vaccination: Vaccination) {
+        vaccinationDao.deleteVaccination(vaccination)
     }
 
     // Attachment operations

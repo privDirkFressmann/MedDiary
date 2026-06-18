@@ -208,6 +208,8 @@ fun CheckupsScreen(
         if (showAddPersonDialog) {
             var newName by remember { mutableStateOf("") }
             var relationKind by remember { mutableStateOf(true) } // true for child, false for adult
+            var birthYearStr by remember { mutableStateOf(java.util.Calendar.getInstance().get(java.util.Calendar.YEAR).toString()) }
+            var selectedGender by remember { mutableStateOf("ALL") } // "ALL", "M", "F"
 
             AlertDialog(
                 onDismissRequest = { showAddPersonDialog = false },
@@ -217,12 +219,13 @@ fun CheckupsScreen(
                         onClick = {
                             if (newName.isNotBlank()) {
                                 val relation = if (relationKind) "Kind" else "Partner"
-                                viewModel.addFamilyMember(newName.trim(), relation)
+                                val birthYear = birthYearStr.toIntOrNull() ?: java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+                                viewModel.addFamilyMember(newName.trim(), relation, birthYear, selectedGender)
                                 viewModel.selectPerson(newName.trim())
                                 showAddPersonDialog = false
                             }
                         },
-                        enabled = newName.isNotBlank()
+                        enabled = newName.isNotBlank() && birthYearStr.isNotBlank()
                     ) {
                         Text("Anlegen")
                     }
@@ -244,9 +247,41 @@ fun CheckupsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
+
+                        OutlinedTextField(
+                            value = birthYearStr,
+                            onValueChange = { birthYearStr = it.filter { char -> char.isDigit() } },
+                            label = { Text("Geburtsjahr") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
                         
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            Text("Profil-Typ:", style = MaterialTheme.typography.titleMedium)
+                            Text("Geschlecht:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    RadioButton(selected = selectedGender == "ALL", onClick = { selectedGender = "ALL" })
+                                    Text("Divers", style = MaterialTheme.typography.bodySmall)
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    RadioButton(selected = selectedGender == "M", onClick = { selectedGender = "M" })
+                                    Text("Männlich", style = MaterialTheme.typography.bodySmall)
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    RadioButton(selected = selectedGender == "F", onClick = { selectedGender = "F" })
+                                    Text("Weiblich", style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text("Profil-Typ:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(8.dp))
                             
                             Row(

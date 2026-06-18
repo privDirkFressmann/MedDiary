@@ -11,6 +11,7 @@ import com.meddiary.data.Checkup
 import com.meddiary.data.FamilyMember
 import com.meddiary.data.MedicalDatabase
 import com.meddiary.data.MedicalRepository
+import com.meddiary.data.Vaccination
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -58,13 +59,21 @@ class MedicalViewModel(
             initialValue = emptyList()
         )
 
+    val allVaccinations: StateFlow<List<Vaccination>> = repository.getAllVaccinations()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+
     init {
         // Safe database initialization: check if profiles are empty and insert default "Dirk"
         viewModelScope.launch {
             try {
                 val members = repository.allFamilyMembers.first()
                 if (members.isEmpty()) {
-                    addFamilyMember("Dirk", "Ich")
+                    addFamilyMember("Dirk", "Ich", 1990, "ALL")
                 }
             } catch (e: Exception) {
                 // Fail-safe
@@ -157,20 +166,49 @@ class MedicalViewModel(
         }
     }
 
-    fun addFamilyMember(name: String, relation: String) {
+    fun addFamilyMember(name: String, relation: String, birthYear: Int, gender: String) {
         viewModelScope.launch {
             val checkups = if (relation == "Kind") {
                 MedicalDatabase.getDefaultChildCheckups(name)
             } else {
                 MedicalDatabase.getDefaultAdultCheckups(name)
             }
-            repository.addFamilyMemberWithCheckups(name, relation, checkups)
+            repository.addFamilyMemberWithCheckups(name, relation, birthYear, gender, checkups)
         }
     }
 
     fun deleteFamilyMember(familyMember: FamilyMember) {
         viewModelScope.launch {
             repository.deleteFamilyMember(familyMember)
+        }
+    }
+
+    // Vaccination operations
+    fun addVaccination(
+        personName: String,
+        title: String,
+        dateMillis: Long,
+        batchNumber: String = "",
+        doctorName: String = "",
+        notes: String = ""
+    ) {
+        viewModelScope.launch {
+            repository.insertVaccination(
+                Vaccination(
+                    personName = personName,
+                    title = title,
+                    dateMillis = dateMillis,
+                    batchNumber = batchNumber,
+                    doctorName = doctorName,
+                    notes = notes
+                )
+            )
+        }
+    }
+
+    fun deleteVaccination(vaccination: Vaccination) {
+        viewModelScope.launch {
+            repository.deleteVaccination(vaccination)
         }
     }
 
@@ -254,7 +292,7 @@ class MedicalViewModel(
                     val firstMember = members.firstOrNull { it.name == "Dirk" } ?: members.first()
                     selectPerson(firstMember.name)
                 } else {
-                    addFamilyMember("Dirk", "Ich")
+                    addFamilyMember("Dirk", "Ich", 1990, "ALL")
                     selectPerson("Dirk")
                 }
                 onResult(true, null)

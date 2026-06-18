@@ -21,6 +21,7 @@ object BackupManager {
         val appointments = database.appointmentDao().getAllAppointments().first()
         val checkups = database.checkupDao().getAllCheckups().first()
         val attachments = database.attachmentDao().getAllAttachments().first()
+        val vaccinations = database.vaccinationDao().getAllVaccinations().first()
 
         // Generate JSON
         val backupJson = JSONObject().apply {
@@ -32,9 +33,25 @@ object BackupManager {
                 fmArray.put(JSONObject().apply {
                     put("name", it.name)
                     put("relation", it.relation)
+                    put("birthYear", it.birthYear)
+                    put("gender", it.gender)
                 })
             }
             put("family_members", fmArray)
+
+            // Vaccinations
+            val vacArray = JSONArray()
+            vaccinations.forEach {
+                vacArray.put(JSONObject().apply {
+                    put("personName", it.personName)
+                    put("title", it.title)
+                    put("dateMillis", it.dateMillis)
+                    put("batchNumber", it.batchNumber)
+                    put("doctorName", it.doctorName)
+                    put("notes", it.notes)
+                })
+            }
+            put("vaccinations", vacArray)
 
             // Appointments
             val apptArray = JSONArray()
@@ -157,7 +174,29 @@ object BackupManager {
                 familyMembers.add(
                     FamilyMember(
                         name = mappedName,
-                        relation = obj.optString("relation", "Kind")
+                        relation = obj.optString("relation", "Kind"),
+                        birthYear = obj.optInt("birthYear", 1990),
+                        gender = obj.optString("gender", "ALL")
+                    )
+                )
+            }
+        }
+
+        val vaccinations = mutableListOf<Vaccination>()
+        val vacArray = backupJson.optJSONArray("vaccinations")
+        if (vacArray != null) {
+            for (i in 0 until vacArray.length()) {
+                val obj = vacArray.getJSONObject(i)
+                val rawPerson = obj.getString("personName")
+                val mappedPerson = if (rawPerson == "Ich") "Dirk" else rawPerson
+                vaccinations.add(
+                    Vaccination(
+                        personName = mappedPerson,
+                        title = obj.getString("title"),
+                        dateMillis = obj.getLong("dateMillis"),
+                        batchNumber = obj.optString("batchNumber", ""),
+                        doctorName = obj.optString("doctorName", ""),
+                        notes = obj.optString("notes", "")
                     )
                 )
             }
@@ -245,9 +284,10 @@ object BackupManager {
             }
         }
 
-        // Insert family members and checkups
+        // Insert family members, checkups and vaccinations
         familyMembers.forEach { database.familyMemberDao().insertFamilyMember(it) }
         checkups.forEach { database.checkupDao().insertCheckup(it) }
+        vaccinations.forEach { database.vaccinationDao().insertVaccination(it) }
 
         tempDir.deleteRecursively()
     }

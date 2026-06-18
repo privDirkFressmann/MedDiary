@@ -4,6 +4,9 @@ import android.widget.Toast
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.Calendar
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -44,7 +47,8 @@ fun HomeScreen(
     viewModel: MedicalViewModel,
     onNavigateToAddAppointment: (Int?) -> Unit,
     onNavigateToCheckups: () -> Unit,
-    onNavigateToCalendar: () -> Unit
+    onNavigateToCalendar: () -> Unit,
+    onNavigateToVaccinations: () -> Unit
 ) {
     val context = LocalContext.current
     val selectedPerson by viewModel.selectedPerson.collectAsState()
@@ -298,7 +302,7 @@ fun HomeScreen(
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Card(
                         modifier = Modifier
@@ -307,23 +311,53 @@ fun HomeScreen(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column(
-                            modifier = Modifier.padding(16.dp),
+                            modifier = Modifier.padding(12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
                                 imageVector = Icons.Default.HealthAndSafety,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.size(28.dp)
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Vorsorge",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Checkups ansehen",
+                                text = "Checkups",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onNavigateToVaccinations() },
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MedicalServices,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Impfpass",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "STIKO-Schutz",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -337,23 +371,23 @@ fun HomeScreen(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column(
-                            modifier = Modifier.padding(16.dp),
+                            modifier = Modifier.padding(12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(
                                 imageVector = Icons.Default.History,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.size(28.dp)
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Historie",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Termine aller User",
+                                text = "Kalender",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -436,6 +470,8 @@ fun HomeScreen(
     if (showAddPersonDialog) {
         var newName by remember { mutableStateOf("") }
         var relationKind by remember { mutableStateOf(true) } // true for child, false for adult
+        var birthYearStr by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR).toString()) }
+        var selectedGender by remember { mutableStateOf("ALL") } // "ALL", "M", "F"
 
         AlertDialog(
             onDismissRequest = { showAddPersonDialog = false },
@@ -445,12 +481,13 @@ fun HomeScreen(
                     onClick = {
                         if (newName.isNotBlank()) {
                             val relation = if (relationKind) "Kind" else "Partner"
-                            viewModel.addFamilyMember(newName.trim(), relation)
+                            val birthYear = birthYearStr.toIntOrNull() ?: Calendar.getInstance().get(Calendar.YEAR)
+                            viewModel.addFamilyMember(newName.trim(), relation, birthYear, selectedGender)
                             viewModel.selectPerson(newName.trim())
                             showAddPersonDialog = false
                         }
                     },
-                    enabled = newName.isNotBlank()
+                    enabled = newName.isNotBlank() && birthYearStr.isNotBlank()
                 ) {
                     Text("Anlegen")
                 }
@@ -472,9 +509,41 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
+
+                    OutlinedTextField(
+                        value = birthYearStr,
+                        onValueChange = { birthYearStr = it.filter { char -> char.isDigit() } },
+                        label = { Text("Geburtsjahr") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
                     
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        Text("Profil-Typ:", style = MaterialTheme.typography.titleMedium)
+                        Text("Geschlecht:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(selected = selectedGender == "ALL", onClick = { selectedGender = "ALL" })
+                                Text("Divers", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(selected = selectedGender == "M", onClick = { selectedGender = "M" })
+                                Text("Männlich", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(selected = selectedGender == "F", onClick = { selectedGender = "F" })
+                                Text("Weiblich", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text("Profil-Typ:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         Row(

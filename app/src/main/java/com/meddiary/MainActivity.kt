@@ -23,7 +23,8 @@ class MainActivity : ComponentActivity() {
             app.database.appointmentDao(),
             app.database.checkupDao(),
             app.database.familyMemberDao(),
-            app.database.attachmentDao()
+            app.database.attachmentDao(),
+            app.database.vaccinationDao()
         )
         MedicalViewModelFactory(repo, app.database)
     }
