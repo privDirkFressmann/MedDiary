@@ -1,0 +1,27 @@
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Files for the art test system
+**/apk-cache/
+
+# Android Studio Local Config
+local.properties
+
+# Gradle files
+.gradle/
+build/
+/*/build/
+
+# Kotlin
+.kotlin/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+
+# OS files
+.DS_Store
