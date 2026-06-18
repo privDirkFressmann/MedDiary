@@ -711,13 +711,12 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         if (familyMembers.size > 1) {
-                            TextButton(
+                            Button(
                                 onClick = {
                                     if (selectedPerson == member.name) {
                                         val nextPerson = familyMembers.firstOrNull { it.name != member.name }?.name ?: ""
@@ -726,18 +725,25 @@ fun HomeScreen(
                                     viewModel.deleteFamilyMember(member)
                                     showEditPersonDialog = false
                                 },
-                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                )
                             ) {
-                                Text("Löschen")
+                                Text("Profil löschen")
                             }
-                        } else {
-                            Spacer(modifier = Modifier.width(1.dp))
                         }
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             TextButton(onClick = { showEditPersonDialog = false }) {
                                 Text("Abbrechen")
                             }
+                            Spacer(modifier = Modifier.width(8.dp))
                             Button(
                                 onClick = {
                                     val relation = if (relationKind) "Kind" else if (member.relation == "Ich") "Ich" else "Partner"
