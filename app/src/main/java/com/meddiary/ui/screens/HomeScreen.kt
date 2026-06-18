@@ -35,6 +35,7 @@ import com.meddiary.data.FamilyMember
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -604,144 +605,162 @@ fun HomeScreen(
         var birthYearStr by remember(member) { mutableStateOf(member.birthYear.toString()) }
         var selectedGender by remember(member) { mutableStateOf(member.gender) }
 
-        AlertDialog(
-            onDismissRequest = { showEditPersonDialog = false },
-            title = { Text("Familienmitglied bearbeiten") },
-            confirmButton = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (familyMembers.size > 1) {
-                        TextButton(
-                            onClick = {
-                                if (selectedPerson == member.name) {
-                                    val nextPerson = familyMembers.firstOrNull { it.name != member.name }?.name ?: ""
-                                    viewModel.selectPerson(nextPerson)
-                                }
-                                viewModel.deleteFamilyMember(member)
-                                showEditPersonDialog = false
-                            },
-                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                        ) {
-                            Text("Löschen")
-                        }
-                    } else {
-                        Spacer(modifier = Modifier.width(1.dp))
-                    }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = { showEditPersonDialog = false }) {
-                            Text("Abbrechen")
-                        }
-                        Button(
-                            onClick = {
-                                val relation = if (relationKind) "Kind" else if (member.relation == "Ich") "Ich" else "Partner"
-                                val birthYear = birthYearStr.toIntOrNull() ?: member.birthYear
-                                viewModel.updateFamilyMember(
-                                    FamilyMember(
-                                        name = member.name,
-                                        relation = relation,
-                                        birthYear = birthYear,
-                                        gender = selectedGender
-                                    )
-                                )
-                                showEditPersonDialog = false
-                            },
-                            enabled = birthYearStr.isNotBlank()
-                        ) {
-                            Text("Speichern")
-                        }
-                    }
-                }
-            },
-            text = {
+        Dialog(onDismissRequest = { showEditPersonDialog = false }) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
+            ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier.padding(24.dp)
                 ) {
-                    OutlinedTextField(
-                        value = member.name,
-                        onValueChange = {},
-                        label = { Text("Name") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        enabled = false
+                    Text(
+                        text = "Familienmitglied bearbeiten",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
-                    OutlinedTextField(
-                        value = birthYearStr,
-                        onValueChange = { birthYearStr = it.filter { char -> char.isDigit() } },
-                        label = { Text("Geburtsjahr") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text("Geschlecht:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = member.name,
+                            onValueChange = {},
+                            label = { Text("Name") },
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(selected = selectedGender == "ALL", onClick = { selectedGender = "ALL" })
-                                Text("Divers", style = MaterialTheme.typography.bodySmall)
+                            singleLine = true,
+                            enabled = false
+                        )
+
+                        OutlinedTextField(
+                            value = birthYearStr,
+                            onValueChange = { birthYearStr = it.filter { char -> char.isDigit() } },
+                            label = { Text("Geburtsjahr") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text("Geschlecht:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    RadioButton(selected = selectedGender == "ALL", onClick = { selectedGender = "ALL" })
+                                    Text("Divers", style = MaterialTheme.typography.bodySmall)
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    RadioButton(selected = selectedGender == "M", onClick = { selectedGender = "M" })
+                                    Text("Männlich", style = MaterialTheme.typography.bodySmall)
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    RadioButton(selected = selectedGender == "F", onClick = { selectedGender = "F" })
+                                    Text("Weiblich", style = MaterialTheme.typography.bodySmall)
+                                }
                             }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(selected = selectedGender == "M", onClick = { selectedGender = "M" })
-                                Text("Männlich", style = MaterialTheme.typography.bodySmall)
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(selected = selectedGender == "F", onClick = { selectedGender = "F" })
-                                Text("Weiblich", style = MaterialTheme.typography.bodySmall)
+                        }
+
+                        if (member.relation != "Ich") {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Text("Profil-Typ:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = relationKind,
+                                        onClick = { relationKind = true }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text("Kind", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                        Text("Lädt U-Untersuchungen (Kinderheilkunde)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = !relationKind,
+                                        onClick = { relationKind = false }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text("Erwachsener (Partner)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                        Text("Lädt Standard-Vorsorgeuntersuchungen", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
                             }
                         }
                     }
 
-                    if (member.relation != "Ich") {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text("Profil-Typ:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (familyMembers.size > 1) {
+                            TextButton(
+                                onClick = {
+                                    if (selectedPerson == member.name) {
+                                        val nextPerson = familyMembers.firstOrNull { it.name != member.name }?.name ?: ""
+                                        viewModel.selectPerson(nextPerson)
+                                    }
+                                    viewModel.deleteFamilyMember(member)
+                                    showEditPersonDialog = false
+                                },
+                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                             ) {
-                                RadioButton(
-                                    selected = relationKind,
-                                    onClick = { relationKind = true }
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column {
-                                    Text("Kind", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                    Text("Lädt U-Untersuchungen (Kinderheilkunde)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
+                                Text("Löschen")
                             }
+                        } else {
+                            Spacer(modifier = Modifier.width(1.dp))
+                        }
 
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = { showEditPersonDialog = false }) {
+                                Text("Abbrechen")
+                            }
+                            Button(
+                                onClick = {
+                                    val relation = if (relationKind) "Kind" else if (member.relation == "Ich") "Ich" else "Partner"
+                                    val birthYear = birthYearStr.toIntOrNull() ?: member.birthYear
+                                    viewModel.updateFamilyMember(
+                                        FamilyMember(
+                                            name = member.name,
+                                            relation = relation,
+                                            birthYear = birthYear,
+                                            gender = selectedGender
+                                        )
+                                    )
+                                    showEditPersonDialog = false
+                                },
+                                enabled = birthYearStr.isNotBlank()
                             ) {
-                                RadioButton(
-                                    selected = !relationKind,
-                                    onClick = { relationKind = false }
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column {
-                                    Text("Erwachsener (Partner)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                    Text("Lädt Standard-Vorsorgeuntersuchungen", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
+                                Text("Speichern")
                             }
                         }
                     }
                 }
             }
-        )
+        }
     }
 }
