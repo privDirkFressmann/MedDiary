@@ -12,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -486,7 +487,7 @@ fun HomeScreen(
         var newName by remember { mutableStateOf("") }
         var relationKind by remember { mutableStateOf(true) } // true for child, false for adult
         var birthYearStr by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR).toString()) }
-        var selectedGender by remember { mutableStateOf("ALL") } // "ALL", "M", "F"
+        var selectedGender by remember { mutableStateOf("M") } // "M", "F"
 
         AlertDialog(
             onDismissRequest = { showAddPersonDialog = false },
@@ -539,20 +540,18 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(selected = selectedGender == "ALL", onClick = { selectedGender = "ALL" })
-                                Text("Divers", style = MaterialTheme.typography.bodySmall)
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(selected = selectedGender == "M", onClick = { selectedGender = "M" })
-                                Text("Männlich", style = MaterialTheme.typography.bodySmall)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Männlich", style = MaterialTheme.typography.bodyMedium)
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(selected = selectedGender == "F", onClick = { selectedGender = "F" })
-                                Text("Weiblich", style = MaterialTheme.typography.bodySmall)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Weiblich", style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }
@@ -603,7 +602,7 @@ fun HomeScreen(
         val member = editingMember!!
         var relationKind by remember(member) { mutableStateOf(member.relation == "Kind") }
         var birthYearStr by remember(member) { mutableStateOf(member.birthYear.toString()) }
-        var selectedGender by remember(member) { mutableStateOf(member.gender) }
+        var selectedGender by remember(member) { mutableStateOf(if (member.gender == "ALL") "M" else member.gender) }
 
         Dialog(onDismissRequest = { showEditPersonDialog = false }) {
             Surface(
@@ -615,7 +614,9 @@ fun HomeScreen(
                 tonalElevation = 6.dp
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp)
+                    modifier = Modifier
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
                     Text(
                         text = "Familienmitglied bearbeiten",
@@ -652,20 +653,18 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.height(4.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    RadioButton(selected = selectedGender == "ALL", onClick = { selectedGender = "ALL" })
-                                    Text("Divers", style = MaterialTheme.typography.bodySmall)
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     RadioButton(selected = selectedGender == "M", onClick = { selectedGender = "M" })
-                                    Text("Männlich", style = MaterialTheme.typography.bodySmall)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Männlich", style = MaterialTheme.typography.bodyMedium)
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     RadioButton(selected = selectedGender == "F", onClick = { selectedGender = "F" })
-                                    Text("Weiblich", style = MaterialTheme.typography.bodySmall)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Weiblich", style = MaterialTheme.typography.bodyMedium)
                                 }
                             }
                         }
