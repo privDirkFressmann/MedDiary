@@ -47,13 +47,14 @@ fun CheckupsScreen(
 
     val filteredCheckups = remember(checkups, selectedCategoryTab, selectedPerson) {
         val personCheckups = checkups.filter { it.personName == selectedPerson }
-        if (selectedCategoryTab == "Alle") {
+        val categoryFiltered = if (selectedCategoryTab == "Alle") {
             personCheckups
         } else if (selectedCategoryTab == "Krebsvorsorge") {
             personCheckups.filter { it.category.contains("krebs", ignoreCase = true) || it.category.contains("screening", ignoreCase = true) }
         } else {
             personCheckups.filter { it.category.contains(selectedCategoryTab, ignoreCase = true) }
         }
+        categoryFiltered.sortedByDescending { it.isEnabled }
     }
 
     Scaffold(
