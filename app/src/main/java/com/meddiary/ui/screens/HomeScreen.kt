@@ -34,6 +34,10 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
 import com.meddiary.data.FamilyMember
+import com.meddiary.data.Doctor
+import com.meddiary.ui.components.DoctorDetailsDialog
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,6 +50,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.meddiary.ui.MedicalViewModel
+import com.meddiary.ui.theme.AccentBlue
+import com.meddiary.ui.theme.CoralAlert
 import com.meddiary.ui.components.AppointmentCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,7 +62,7 @@ fun HomeScreen(
     onNavigateToCheckups: () -> Unit,
     onNavigateToCalendar: () -> Unit,
     onNavigateToVaccinations: () -> Unit,
-    onNavigateToDoctors: () -> Unit
+    onNavigateToDoctors: (Int?) -> Unit
 ) {
     val context = LocalContext.current
     val selectedPerson by viewModel.selectedPerson.collectAsState()
@@ -73,13 +79,19 @@ fun HomeScreen(
     val upcomingAppointments by viewModel.upcomingAppointments.collectAsState()
     val checkups by viewModel.allCheckups.collectAsState()
     
+    val doctors by viewModel.allDoctors.collectAsState()
+    var activeDoctorDetails by remember { mutableStateOf<Doctor?>(null) }
     var showAddPersonDialog by remember { mutableStateOf(false) }
     var showEditPersonDialog by remember { mutableStateOf(false) }
     var editingMember by remember { mutableStateOf<FamilyMember?>(null) }
     var expandedPersonDropdown by remember { mutableStateOf(false) }
 
-    LaunchedEffect(familyMembers) {
-        showAddPersonDialog = familyMembers.isEmpty()
+    val isFamilyMembersLoaded by viewModel.isFamilyMembersLoaded.collectAsState()
+
+    LaunchedEffect(familyMembers, isFamilyMembersLoaded) {
+        if (isFamilyMembersLoaded) {
+            showAddPersonDialog = familyMembers.isEmpty()
+        }
     }
 
     val personUpcomingAppointments = remember(upcomingAppointments, selectedPerson) {
@@ -207,10 +219,10 @@ fun HomeScreen(
                                          Text("Ärzte-Datenbank")
                                      }
                                  },
-                                 onClick = {
-                                     onNavigateToDoctors()
-                                     expandedPersonDropdown = false
-                                 }
+                                  onClick = {
+                                      onNavigateToDoctors(null)
+                                      expandedPersonDropdown = false
+                                  }
                              )
                              HorizontalDivider()
                              DropdownMenuItem(
@@ -351,7 +363,7 @@ fun HomeScreen(
                 ) {
                     Card(
                         modifier = Modifier
-                            .weight(1f)
+                            .weight(0.85f)
                             .fillMaxHeight()
                             .clickable { onNavigateToCheckups() },
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -386,7 +398,7 @@ fun HomeScreen(
 
                     Card(
                         modifier = Modifier
-                            .weight(1f)
+                            .weight(1.3f)
                             .fillMaxHeight()
                             .clickable { onNavigateToVaccinations() },
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -421,7 +433,7 @@ fun HomeScreen(
 
                     Card(
                         modifier = Modifier
-                            .weight(1f)
+                            .weight(0.85f)
                             .fillMaxHeight()
                             .clickable { onNavigateToCalendar() },
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -513,13 +525,24 @@ fun HomeScreen(
                     }
                 }
             } else {
+                val currentTimeMillis = System.currentTimeMillis()
                 items(personUpcomingAppointments.take(3)) { appointment ->
+                    val isPast = appointment.dateMillis < currentTimeMillis
+                    val color = if (isPast) AccentBlue else CoralAlert
                     AppointmentCard(
                         appointment = appointment,
-                        onCheckedChange = { viewModel.toggleAppointmentCompleted(appointment) },
+                        showCheckbox = false,
+                        useStrikethrough = false,
+                        indicatorColor = color,
                         onEditClick = { onNavigateToAddAppointment(appointment.id, false) },
                         onCopyClick = { onNavigateToAddAppointment(appointment.id, true) },
-                        onDeleteClick = { viewModel.deleteAppointment(appointment) }
+                        onDeleteClick = { viewModel.deleteAppointment(appointment) },
+                        onDoctorClick = { docId ->
+                            val doc = doctors.firstOrNull { it.id == docId }
+                            if (doc != null) {
+                                activeDoctorDetails = doc
+                            }
+                        }
                     )
                 }
             }
@@ -820,5 +843,33 @@ fun HomeScreen(
                 }
             }
         }
+    }
+
+    if (activeDoctorDetails != null) {
+        DoctorDetailsDialog(
+            doctor = activeDoctorDetails!!,
+            onDismiss = { activeDoctorDetails = null },
+            onEditClick = {
+                val docId = activeDoctorDetails?.id
+                activeDoctorDetails = null
+                onNavigateToDoctors(docId)
+            },
+            onCallClick = { phone ->
+                try {
+                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Anruf-App konnte nicht geöffnet werden.", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onMapClick = { address ->
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(address)}"))
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Karten-App konnte nicht geöffnet werden.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
     }
 }

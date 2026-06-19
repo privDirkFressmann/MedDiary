@@ -28,6 +28,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +39,10 @@ import androidx.compose.ui.window.DialogProperties
 import com.meddiary.ui.MedicalViewModel
 import com.meddiary.data.Vaccination
 import com.meddiary.data.FamilyMember
+import com.meddiary.data.Doctor
+import com.meddiary.ui.components.DoctorDetailsDialog
+import android.content.Intent
+import android.net.Uri
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -47,7 +52,8 @@ import java.util.Locale
 @Composable
 fun VaccinationsScreen(
     viewModel: MedicalViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToDoctors: (Int?) -> Unit
 ) {
     val context = LocalContext.current
     val vaccinations by viewModel.allVaccinations.collectAsState()
@@ -67,6 +73,8 @@ fun VaccinationsScreen(
     var selectedTab by remember { mutableStateOf(0) } // 0: Meine Impfungen, 1: STIKO-Empfehlungen
     val tabs = listOf("Meine Impfungen", "STIKO-Empfehlungen")
 
+    val doctors by viewModel.allDoctors.collectAsState()
+    var activeDoctorDetails by remember { mutableStateOf<Doctor?>(null) }
     val dateFormatter = remember { SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()) }
 
     // Filter vaccinations for selected person
@@ -176,7 +184,13 @@ fun VaccinationsScreen(
                         editVaccination = vac
                         showAddDialog = true
                     },
-                    onDeleteVaccination = { viewModel.deleteVaccination(it) }
+                    onDeleteVaccination = { viewModel.deleteVaccination(it) },
+                    onNavigateToDoctors = { docId ->
+                        val doc = doctors.firstOrNull { it.id == docId }
+                        if (doc != null) {
+                            activeDoctorDetails = doc
+                        }
+                    }
                 )
                 1 -> StikoRecommendationsList(
                     vaccinations = personVaccinations,
@@ -230,6 +244,34 @@ fun VaccinationsScreen(
             )
         }
     }
+
+    if (activeDoctorDetails != null) {
+        DoctorDetailsDialog(
+            doctor = activeDoctorDetails!!,
+            onDismiss = { activeDoctorDetails = null },
+            onEditClick = {
+                val docId = activeDoctorDetails?.id
+                activeDoctorDetails = null
+                onNavigateToDoctors(docId)
+            },
+            onCallClick = { phone ->
+                try {
+                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Anruf-App konnte nicht geöffnet werden.", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onMapClick = { address ->
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(address)}"))
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Karten-App konnte nicht geöffnet werden.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -238,7 +280,8 @@ fun LoggedVaccinationsList(
     dateFormatter: SimpleDateFormat,
     onCopyVaccination: (Vaccination) -> Unit,
     onEditVaccination: (Vaccination) -> Unit,
-    onDeleteVaccination: (Vaccination) -> Unit
+    onDeleteVaccination: (Vaccination) -> Unit,
+    onNavigateToDoctors: (Int?) -> Unit
 ) {
     if (vaccinations.isEmpty()) {
         Box(
@@ -300,13 +343,20 @@ fun LoggedVaccinationsList(
                                 text = "Geimpft am: ${dateFormatter.format(Date(vaccination.dateMillis))}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            if (vaccination.doctorName.isNotBlank()) {
-                                Text(
-                                    text = "Arzt/Praxis: ${vaccination.doctorName}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                             if (vaccination.doctorName.isNotBlank()) {
+                                 Text(
+                                     text = "Arzt/Praxis: ${vaccination.doctorName}",
+                                     style = MaterialTheme.typography.bodySmall.copy(
+                                         textDecoration = if (vaccination.doctorId != null) TextDecoration.Underline else null
+                                     ),
+                                     color = if (vaccination.doctorId != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                     modifier = if (vaccination.doctorId != null) {
+                                         Modifier.clickable { onNavigateToDoctors(vaccination.doctorId) }
+                                     } else {
+                                         Modifier
+                                     }
+                                 )
+                             }
                             if (vaccination.batchNumber.isNotBlank()) {
                                 Text(
                                     text = "Charge: ${vaccination.batchNumber}",

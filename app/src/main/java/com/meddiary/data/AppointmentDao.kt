@@ -22,4 +22,10 @@ interface AppointmentDao {
 
     @Delete
     suspend fun deleteAppointment(appointment: Appointment)
+
+    @Query("UPDATE appointments SET doctor = :newName WHERE doctorId = :doctorId")
+    suspend fun updateDoctorNameForId(doctorId: Int, newName: String)
+
+    @Query("UPDATE appointments SET doctorId = null WHERE doctorId = :doctorId")
+    suspend fun removeDoctorLinkForId(doctorId: Int)
 }

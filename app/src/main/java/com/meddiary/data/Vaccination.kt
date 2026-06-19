@@ -11,5 +11,6 @@ data class Vaccination(
     val dateMillis: Long, // when it was administered
     val batchNumber: String = "", // Chargennummer
     val doctorName: String = "",
-    val notes: String = ""
+    val notes: String = "",
+    val doctorId: Int? = null
 )

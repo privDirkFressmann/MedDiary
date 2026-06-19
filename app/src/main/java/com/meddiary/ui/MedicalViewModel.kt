@@ -75,9 +75,13 @@ class MedicalViewModel(
         )
 
 
+    private val _isFamilyMembersLoaded = MutableStateFlow(false)
+    val isFamilyMembersLoaded: StateFlow<Boolean> = _isFamilyMembersLoaded.asStateFlow()
+
     init {
         viewModelScope.launch {
             repository.allFamilyMembers.collect { members ->
+                _isFamilyMembersLoaded.value = true
                 if (members.isNotEmpty()) {
                     val currentSelected = _selectedPerson.value
                     if (currentSelected.isBlank() || !members.any { it.name == currentSelected }) {
@@ -113,6 +117,7 @@ class MedicalViewModel(
         newAttachments: List<Pair<String, String>> = emptyList() // Pair<FilePath, DisplayName>
     ) {
         viewModelScope.launch {
+            val docId = allDoctors.value.firstOrNull { it.name.trim().equals(doctor.trim(), ignoreCase = true) }?.id
             val appointment = Appointment(
                 id = id,
                 personName = personName,
@@ -123,7 +128,8 @@ class MedicalViewModel(
                 notes = notes,
                 reminderEnabled = reminderEnabled,
                 reminderTimeMillis = reminderTimeMillis,
-                isCompleted = isCompleted
+                isCompleted = isCompleted,
+                doctorId = docId
             )
             val finalId = if (id == 0) {
                 repository.insertAppointment(appointment).toInt()
@@ -210,6 +216,7 @@ class MedicalViewModel(
         id: Int = 0
     ) {
         viewModelScope.launch {
+            val docId = allDoctors.value.firstOrNull { it.name.trim().equals(doctorName.trim(), ignoreCase = true) }?.id
             repository.insertVaccination(
                 Vaccination(
                     id = id,
@@ -218,7 +225,8 @@ class MedicalViewModel(
                     dateMillis = dateMillis,
                     batchNumber = batchNumber,
                     doctorName = doctorName,
-                    notes = notes
+                    notes = notes,
+                    doctorId = docId
                 )
             )
         }
@@ -323,14 +331,16 @@ class MedicalViewModel(
         id: Int = 0,
         name: String,
         address: String = "",
-        phoneNumber: String = ""
+        phoneNumber: String = "",
+        specialty: String = ""
     ) {
         viewModelScope.launch {
             val doctor = Doctor(
                 id = id,
                 name = name,
                 address = address,
-                phoneNumber = phoneNumber
+                phoneNumber = phoneNumber,
+                specialty = specialty
             )
             if (id == 0) {
                 repository.insertDoctor(doctor)

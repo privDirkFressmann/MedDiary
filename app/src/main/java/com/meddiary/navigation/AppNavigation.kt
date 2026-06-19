@@ -38,8 +38,8 @@ fun AppNavigation(
                 onNavigateToVaccinations = {
                     navController.navigate(Screen.Vaccinations.route)
                 },
-                onNavigateToDoctors = {
-                    navController.navigate(Screen.Doctors.route)
+                onNavigateToDoctors = { docId ->
+                    navController.navigate(Screen.Doctors.passId(docId))
                 }
             )
         }
@@ -88,6 +88,9 @@ fun AppNavigation(
                 },
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToDoctors = { docId ->
+                    navController.navigate(Screen.Doctors.passId(docId))
                 }
             )
         }
@@ -97,13 +100,28 @@ fun AppNavigation(
                 viewModel = viewModel,
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToDoctors = { docId ->
+                    navController.navigate(Screen.Doctors.passId(docId))
                 }
             )
         }
 
-        composable(route = Screen.Doctors.route) {
+        composable(
+            route = Screen.Doctors.route,
+            arguments = listOf(
+                navArgument("doctorId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val docIdStr = backStackEntry.arguments?.getString("doctorId")
+            val docId = docIdStr?.toIntOrNull()
             DoctorsScreen(
                 viewModel = viewModel,
+                doctorId = docId,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

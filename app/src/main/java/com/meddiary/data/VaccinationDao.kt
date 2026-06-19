@@ -20,4 +20,10 @@ interface VaccinationDao {
 
     @Delete
     suspend fun deleteVaccination(vaccination: Vaccination)
+
+    @Query("UPDATE vaccinations SET doctorName = :newName WHERE doctorId = :doctorId")
+    suspend fun updateDoctorNameForId(doctorId: Int, newName: String)
+
+    @Query("UPDATE vaccinations SET doctorId = null WHERE doctorId = :doctorId")
+    suspend fun removeDoctorLinkForId(doctorId: Int)
 }

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,13 +26,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.meddiary.data.Doctor
 import com.meddiary.ui.MedicalViewModel
+import com.meddiary.ui.components.DoctorDetailsDialog
+
+private val specialtiesList = listOf(
+    "Allgemeinmedizin (Hausarzt)",
+    "Augenarzt",
+    "Dermatologie (Hautarzt)",
+    "Frauenarzt (Gynäkologie)",
+    "HNO-Arzt",
+    "Kardiologie",
+    "Kinderarzt",
+    "Orthopädie",
+    "Rheumatologie",
+    "Urologie",
+    "Zahnarzt",
+    "Sonstige"
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DoctorsScreen(
     viewModel: MedicalViewModel,
+    doctorId: Int? = null,
     onNavigateBack: () -> Unit
 ) {
     val doctors by viewModel.allDoctors.collectAsState()
@@ -39,6 +58,18 @@ fun DoctorsScreen(
 
     var showAddEditDialog by remember { mutableStateOf(false) }
     var editingDoctor by remember { mutableStateOf<Doctor?>(null) }
+    var showDetailsDialog by remember { mutableStateOf(false) }
+    var detailsDoctor by remember { mutableStateOf<Doctor?>(null) }
+
+    LaunchedEffect(doctors, doctorId) {
+        if (doctorId != null && doctors.isNotEmpty()) {
+            val doc = doctors.firstOrNull { it.id == doctorId }
+            if (doc != null) {
+                editingDoctor = doc
+                showAddEditDialog = true
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -151,22 +182,49 @@ fun DoctorsScreen(
     }
 
     if (showAddEditDialog) {
-        var name by remember { mutableStateOf(editingDoctor?.name ?: "") }
-        var address by remember { mutableStateOf(editingDoctor?.address ?: "") }
-        var phoneNumber by remember { mutableStateOf(editingDoctor?.phoneNumber ?: "") }
+        val doctor = editingDoctor
+        var name by remember { mutableStateOf(doctor?.name ?: "") }
+        var selectedSpecialty by remember {
+            mutableStateOf(
+                if (doctor == null) {
+                    "Allgemeinmedizin (Hausarzt)"
+                } else if (specialtiesList.contains(doctor.specialty)) {
+                    doctor.specialty
+                } else if (doctor.specialty.isBlank()) {
+                    "Allgemeinmedizin (Hausarzt)"
+                } else {
+                    "Sonstige"
+                }
+            )
+        }
+        var customSpecialty by remember {
+            mutableStateOf(
+                if (doctor != null && !specialtiesList.contains(doctor.specialty) && doctor.specialty.isNotBlank()) {
+                    doctor.specialty
+                } else {
+                    ""
+                }
+            )
+        }
+        var expandedSpecialtyDropdown by remember { mutableStateOf(false) }
+        var address by remember { mutableStateOf(doctor?.address ?: "") }
+        var phoneNumber by remember { mutableStateOf(doctor?.phoneNumber ?: "") }
+
+        val finalSpecialty = if (selectedSpecialty == "Sonstige") customSpecialty.trim() else selectedSpecialty
 
         AlertDialog(
             onDismissRequest = { showAddEditDialog = false },
-            title = { Text(if (editingDoctor == null) "Arzt hinzufügen" else "Arzt bearbeiten") },
+            title = { Text(if (doctor == null) "Arzt hinzufügen" else "Arzt bearbeiten") },
             confirmButton = {
                 Button(
                     onClick = {
                         if (name.isNotBlank()) {
                             viewModel.saveDoctor(
-                                id = editingDoctor?.id ?: 0,
+                                id = doctor?.id ?: 0,
                                 name = name.trim(),
                                 address = address.trim(),
-                                phoneNumber = phoneNumber.trim()
+                                phoneNumber = phoneNumber.trim(),
+                                specialty = finalSpecialty
                             )
                             showAddEditDialog = false
                         }
@@ -194,6 +252,48 @@ fun DoctorsScreen(
                         singleLine = true
                     )
 
+                    // Specialty Selector (Dropdown)
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = selectedSpecialty,
+                            onValueChange = {},
+                            label = { Text("Fachrichtung") },
+                            modifier = Modifier.fillMaxWidth(),
+                            readOnly = true,
+                            trailingIcon = {
+                                IconButton(onClick = { expandedSpecialtyDropdown = true }) {
+                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Auswählen")
+                                }
+                            }
+                        )
+                        DropdownMenu(
+                            expanded = expandedSpecialtyDropdown,
+                            onDismissRequest = { expandedSpecialtyDropdown = false },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            specialtiesList.forEach { spec ->
+                                DropdownMenuItem(
+                                    text = { Text(spec) },
+                                    onClick = {
+                                        selectedSpecialty = spec
+                                        expandedSpecialtyDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    // Custom specialty field (if "Sonstige" is selected)
+                    if (selectedSpecialty == "Sonstige") {
+                        OutlinedTextField(
+                            value = customSpecialty,
+                            onValueChange = { customSpecialty = it },
+                            label = { Text("Eigene Fachrichtung eingeben") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+
                     OutlinedTextField(
                         value = address,
                         onValueChange = { address = it },
@@ -213,6 +313,37 @@ fun DoctorsScreen(
                 }
             }
         )
+    }
+
+    if (showDetailsDialog) {
+        val doctor = detailsDoctor
+        if (doctor != null) {
+            DoctorDetailsDialog(
+                doctor = doctor,
+                onDismiss = { showDetailsDialog = false },
+                onEditClick = {
+                    showDetailsDialog = false
+                    editingDoctor = doctor
+                    showAddEditDialog = true
+                },
+                onCallClick = { phone ->
+                    try {
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Anruf-App konnte nicht geöffnet werden.", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onMapClick = { address ->
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(address)}"))
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Karten-App konnte nicht geöffnet werden.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -242,12 +373,22 @@ fun DoctorCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = doctor.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = doctor.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (doctor.specialty.isNotBlank()) {
+                        Text(
+                            text = doctor.specialty,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(onClick = onEditClick) {
                         Icon(

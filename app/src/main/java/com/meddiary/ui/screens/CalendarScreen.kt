@@ -19,6 +19,12 @@ import com.meddiary.ui.MedicalViewModel
 import com.meddiary.ui.components.AppointmentCard
 import com.meddiary.ui.theme.AccentBlue
 import com.meddiary.ui.theme.CoralAlert
+import com.meddiary.data.Doctor
+import com.meddiary.ui.components.DoctorDetailsDialog
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -29,8 +35,12 @@ import java.util.Locale
 fun CalendarScreen(
     viewModel: MedicalViewModel,
     onNavigateToAddAppointment: (Int?, Boolean) -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToDoctors: (Int?) -> Unit
 ) {
+    val context = LocalContext.current
+    val doctors by viewModel.allDoctors.collectAsState()
+    var activeDoctorDetails by remember { mutableStateOf<Doctor?>(null) }
     val familyMembers by viewModel.familyMembers.collectAsState()
     val appointments by viewModel.allAppointments.collectAsState()
 
@@ -246,12 +256,46 @@ fun CalendarScreen(
                                 indicatorColor = color,
                                 onEditClick = { onNavigateToAddAppointment(appointment.id, false) },
                                 onCopyClick = { onNavigateToAddAppointment(appointment.id, true) },
-                                onDeleteClick = { viewModel.deleteAppointment(appointment) }
+                                onDeleteClick = { viewModel.deleteAppointment(appointment) },
+                                onDoctorClick = { docId ->
+                                    val doc = doctors.firstOrNull { it.id == docId }
+                                    if (doc != null) {
+                                        activeDoctorDetails = doc
+                                    }
+                                }
                             )
                         }
                     }
                 }
             }
         }
+    }
+
+    if (activeDoctorDetails != null) {
+        DoctorDetailsDialog(
+            doctor = activeDoctorDetails!!,
+            onDismiss = { activeDoctorDetails = null },
+            onEditClick = {
+                val docId = activeDoctorDetails?.id
+                activeDoctorDetails = null
+                onNavigateToDoctors(docId)
+            },
+            onCallClick = { phone ->
+                try {
+                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Anruf-App konnte nicht geöffnet werden.", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onMapClick = { address ->
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(address)}"))
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Karten-App konnte nicht geöffnet werden.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
     }
 }

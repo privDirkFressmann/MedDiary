@@ -282,6 +282,64 @@ fun AddEditAppointmentScreen(
                 singleLine = true
             )
 
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = doctor,
+                    onValueChange = { newValue ->
+                        doctor = newValue
+                        expandedDoctorDropdown = true
+                        val matchedDoc = doctorsState.firstOrNull { it.name.trim().equals(newValue.trim(), ignoreCase = true) }
+                        if (matchedDoc != null && matchedDoc.specialty.isNotBlank()) {
+                            if (specialtiesList.contains(matchedDoc.specialty)) {
+                                selectedSpecialty = matchedDoc.specialty
+                                customSpecialty = ""
+                            } else {
+                                selectedSpecialty = "Sonstige"
+                                customSpecialty = matchedDoc.specialty
+                            }
+                        }
+                    },
+                    label = { Text("Arzt/Ärztin (z.B. Dr. Müller)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    trailingIcon = {
+                        if (existingDoctors.isNotEmpty()) {
+                            IconButton(onClick = { expandedDoctorDropdown = !expandedDoctorDropdown }) {
+                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Ärzte vorschlagen")
+                            }
+                        }
+                    }
+                )
+                if (filteredDoctors.isNotEmpty()) {
+                    DropdownMenu(
+                        expanded = expandedDoctorDropdown,
+                        onDismissRequest = { expandedDoctorDropdown = false },
+                        properties = androidx.compose.ui.window.PopupProperties(focusable = false),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        filteredDoctors.take(5).forEach { doc ->
+                            DropdownMenuItem(
+                                text = { Text(doc) },
+                                onClick = {
+                                    doctor = doc
+                                    expandedDoctorDropdown = false
+                                    val matchedDoc = doctorsState.firstOrNull { it.name.trim().equals(doc.trim(), ignoreCase = true) }
+                                    if (matchedDoc != null && matchedDoc.specialty.isNotBlank()) {
+                                        if (specialtiesList.contains(matchedDoc.specialty)) {
+                                            selectedSpecialty = matchedDoc.specialty
+                                            customSpecialty = ""
+                                        } else {
+                                            selectedSpecialty = "Sonstige"
+                                            customSpecialty = matchedDoc.specialty
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
             // Specialty Selector (Dropdown)
             Box(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
@@ -322,44 +380,6 @@ fun AddEditAppointmentScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-            }
-
-            Box(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = doctor,
-                    onValueChange = {
-                        doctor = it
-                        expandedDoctorDropdown = true
-                    },
-                    label = { Text("Arzt/Ärztin (z.B. Dr. Müller)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    trailingIcon = {
-                        if (existingDoctors.isNotEmpty()) {
-                            IconButton(onClick = { expandedDoctorDropdown = !expandedDoctorDropdown }) {
-                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Ärzte vorschlagen")
-                            }
-                        }
-                    }
-                )
-                if (filteredDoctors.isNotEmpty()) {
-                    DropdownMenu(
-                        expanded = expandedDoctorDropdown,
-                        onDismissRequest = { expandedDoctorDropdown = false },
-                        properties = androidx.compose.ui.window.PopupProperties(focusable = false),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        filteredDoctors.take(5).forEach { doc ->
-                            DropdownMenuItem(
-                                text = { Text(doc) },
-                                onClick = {
-                                    doctor = doc
-                                    expandedDoctorDropdown = false
-                                }
-                            )
-                        }
-                    }
-                }
             }
 
             Row(

@@ -8,5 +8,6 @@ data class Doctor(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
     val address: String = "",
-    val phoneNumber: String = ""
+    val phoneNumber: String = "",
+    val specialty: String = ""
 )

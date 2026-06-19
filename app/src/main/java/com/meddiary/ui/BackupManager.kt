@@ -50,6 +50,7 @@ object BackupManager {
                     put("batchNumber", it.batchNumber)
                     put("doctorName", it.doctorName)
                     put("notes", it.notes)
+                    put("doctorId", it.doctorId ?: JSONObject.NULL)
                 })
             }
             put("vaccinations", vacArray)
@@ -68,6 +69,7 @@ object BackupManager {
                     put("reminderEnabled", it.reminderEnabled)
                     put("reminderTimeMillis", it.reminderTimeMillis)
                     put("isCompleted", it.isCompleted)
+                    put("doctorId", it.doctorId ?: JSONObject.NULL)
                 })
             }
             put("appointments", apptArray)
@@ -112,6 +114,7 @@ object BackupManager {
                     put("name", it.name)
                     put("address", it.address)
                     put("phoneNumber", it.phoneNumber)
+                    put("specialty", it.specialty)
                 })
             }
             put("doctors", docArray)
@@ -177,6 +180,24 @@ object BackupManager {
         // Clear existing database tables
         database.clearAllTables()
 
+        // 2a. Import doctors first to map old IDs to new auto-generated IDs
+        val oldToNewDocIdMap = mutableMapOf<Int, Int>()
+        val docArray = backupJson.optJSONArray("doctors")
+        if (docArray != null) {
+            for (i in 0 until docArray.length()) {
+                val obj = docArray.getJSONObject(i)
+                val oldId = obj.getInt("id")
+                val doc = Doctor(
+                    name = obj.getString("name"),
+                    address = obj.optString("address", ""),
+                    phoneNumber = obj.optString("phoneNumber", ""),
+                    specialty = obj.optString("specialty", "")
+                )
+                val newId = database.doctorDao().insertDoctor(doc).toInt()
+                oldToNewDocIdMap[oldId] = newId
+            }
+        }
+
         val familyMembers = mutableListOf<FamilyMember>()
         val fmArray = backupJson.optJSONArray("family_members")
         if (fmArray != null) {
@@ -202,6 +223,8 @@ object BackupManager {
                 val obj = vacArray.getJSONObject(i)
                 val rawPerson = obj.getString("personName")
                 val mappedPerson = if (rawPerson == "Ich") "Dirk" else rawPerson
+                val oldDocId = if (obj.has("doctorId") && !obj.isNull("doctorId")) obj.getInt("doctorId") else null
+                val newDocId = oldDocId?.let { oldToNewDocIdMap[it] }
                 vaccinations.add(
                     Vaccination(
                         personName = mappedPerson,
@@ -209,7 +232,8 @@ object BackupManager {
                         dateMillis = obj.getLong("dateMillis"),
                         batchNumber = obj.optString("batchNumber", ""),
                         doctorName = obj.optString("doctorName", ""),
-                        notes = obj.optString("notes", "")
+                        notes = obj.optString("notes", ""),
+                        doctorId = newDocId
                     )
                 )
             }
@@ -253,6 +277,8 @@ object BackupManager {
                 val oldId = obj.getInt("id")
                 val rawPerson = obj.getString("personName")
                 val mappedPerson = if (rawPerson == "Ich") "Dirk" else rawPerson
+                val oldDocId = if (obj.has("doctorId") && !obj.isNull("doctorId")) obj.getInt("doctorId") else null
+                val newDocId = oldDocId?.let { oldToNewDocIdMap[it] }
                 val appt = Appointment(
                     title = obj.getString("title"),
                     doctor = obj.getString("doctor"),
@@ -262,7 +288,8 @@ object BackupManager {
                     reminderEnabled = obj.optBoolean("reminderEnabled", false),
                     reminderTimeMillis = obj.optLong("reminderTimeMillis", 0L),
                     isCompleted = obj.optBoolean("isCompleted", false),
-                    personName = mappedPerson
+                    personName = mappedPerson,
+                    doctorId = newDocId
                 )
                 val newId = database.appointmentDao().insertAppointment(appt).toInt()
                 oldToNewApptIdMap[oldId] = newId
@@ -297,26 +324,10 @@ object BackupManager {
             }
         }
 
-        val doctors = mutableListOf<Doctor>()
-        val docArray = backupJson.optJSONArray("doctors")
-        if (docArray != null) {
-            for (i in 0 until docArray.length()) {
-                val obj = docArray.getJSONObject(i)
-                doctors.add(
-                    Doctor(
-                        name = obj.getString("name"),
-                        address = obj.optString("address", ""),
-                        phoneNumber = obj.optString("phoneNumber", "")
-                    )
-                )
-            }
-        }
-
         // Insert family members, checkups and vaccinations
         familyMembers.forEach { database.familyMemberDao().insertFamilyMember(it) }
         checkups.forEach { database.checkupDao().insertCheckup(it) }
         vaccinations.forEach { database.vaccinationDao().insertVaccination(it) }
-        doctors.forEach { database.doctorDao().insertDoctor(it) }
 
         tempDir.deleteRecursively()
     }

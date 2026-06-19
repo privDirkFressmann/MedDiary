@@ -104,9 +104,13 @@ class MedicalRepository(
 
     suspend fun updateDoctor(doctor: Doctor) {
         doctorDao.updateDoctor(doctor)
+        appointmentDao.updateDoctorNameForId(doctor.id, doctor.name)
+        vaccinationDao.updateDoctorNameForId(doctor.id, doctor.name)
     }
 
     suspend fun deleteDoctor(doctor: Doctor) {
         doctorDao.deleteDoctor(doctor)
+        appointmentDao.removeDoctorLinkForId(doctor.id)
+        vaccinationDao.removeDoctorLinkForId(doctor.id)
     }
 }

@@ -10,5 +10,9 @@ sealed class Screen(val route: String) {
     object Checkups : Screen("checkups")
     object Calendar : Screen("calendar")
     object Vaccinations : Screen("vaccinations")
-    object Doctors : Screen("doctors")
+    object Doctors : Screen("doctors?doctorId={doctorId}") {
+        fun passId(doctorId: Int? = null): String {
+            return if (doctorId != null) "doctors?doctorId=$doctorId" else "doctors"
+        }
+    }
 }

@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.meddiary.data.Appointment
 import java.text.SimpleDateFormat
@@ -34,7 +35,8 @@ fun AppointmentCard(
     onCheckedChange: () -> Unit = {},
     showCheckbox: Boolean = true,
     useStrikethrough: Boolean = true,
-    indicatorColor: Color? = null
+    indicatorColor: Color? = null,
+    onDoctorClick: ((Int) -> Unit)? = null
 ) {
     val formattedDate = SimpleDateFormat("dd. MMMM yyyy", Locale.GERMAN).format(Date(appointment.dateMillis))
     val formattedTime = SimpleDateFormat("HH:mm", Locale.GERMAN).format(Date(appointment.dateMillis))
@@ -117,13 +119,34 @@ fun AppointmentCard(
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Text(
-                    text = if (appointment.doctor.isNotEmpty()) "${appointment.specialty} • ${appointment.doctor}" else appointment.specialty,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (appointment.specialty.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = appointment.specialty,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                if (appointment.doctor.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = appointment.doctor,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            textDecoration = if (appointment.doctorId != null) TextDecoration.Underline else null
+                        ),
+                        color = if (appointment.doctorId != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = (if (appointment.doctorId != null && onDoctorClick != null) {
+                            Modifier.clickable { onDoctorClick(appointment.doctorId) }
+                        } else {
+                            Modifier
+                        }).fillMaxWidth()
+                    )
+                }
                 
                 Spacer(modifier = Modifier.height(6.dp))
                 
