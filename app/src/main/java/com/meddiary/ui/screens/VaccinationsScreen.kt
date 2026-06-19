@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.meddiary.ui.MedicalViewModel
 import com.meddiary.data.Vaccination
 import com.meddiary.data.FamilyMember
@@ -642,34 +643,31 @@ fun AddVaccinationDialog(
         "HPV", "Hepatitis B", "Windpocken", "Meningokokken", "COVID-19", "Sonstige"
     )
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (isEditMode) "Impfung bearbeiten" else "Impfung erfassen") },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (title.isNotBlank()) {
-                        val dateMillis = dateState.selectedDateMillis ?: System.currentTimeMillis()
-                        onConfirm(title.trim(), dateMillis, batch.trim(), doctor.trim(), notes.trim())
-                    }
-                },
-                enabled = title.isNotBlank()
-            ) {
-                Text("Speichern")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Abbrechen")
-            }
-        },
-        text = {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(16.dp)
+                .imePadding()
+                .navigationBarsPadding(),
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp
+        ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .padding(24.dp)
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                Text(
+                    text = if (isEditMode) "Impfung bearbeiten" else "Impfung erfassen",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
                 // Vaccine selection (Dropdown + Input)
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
@@ -796,7 +794,32 @@ fun AddVaccinationDialog(
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Actions Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Abbrechen")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (title.isNotBlank()) {
+                                val dateMillis = dateState.selectedDateMillis ?: System.currentTimeMillis()
+                                onConfirm(title.trim(), dateMillis, batch.trim(), doctor.trim(), notes.trim())
+                            }
+                        },
+                        enabled = title.isNotBlank()
+                    ) {
+                        Text("Speichern")
+                    }
+                }
             }
         }
-    )
+    }
 }
