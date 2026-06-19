@@ -52,6 +52,15 @@ fun VaccinationsScreen(
     val context = LocalContext.current
     val vaccinations by viewModel.allVaccinations.collectAsState()
     val familyMembers by viewModel.familyMembers.collectAsState()
+    val sortedMembers = remember(familyMembers) {
+        val list = familyMembers.toMutableList()
+        val dirk = list.firstOrNull { it.name == "Dirk" }
+        if (dirk != null) {
+            list.remove(dirk)
+            list.add(0, dirk)
+        }
+        list
+    }
     val selectedPerson by viewModel.selectedPerson.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
@@ -120,7 +129,7 @@ fun VaccinationsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    familyMembers.forEach { member ->
+                    sortedMembers.forEach { member ->
                         val isSelected = member.name == selectedPerson
                         FilterChip(
                             selected = isSelected,

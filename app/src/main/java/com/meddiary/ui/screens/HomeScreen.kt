@@ -59,6 +59,15 @@ fun HomeScreen(
     val context = LocalContext.current
     val selectedPerson by viewModel.selectedPerson.collectAsState()
     val familyMembers by viewModel.familyMembers.collectAsState()
+    val sortedMembers = remember(familyMembers) {
+        val list = familyMembers.toMutableList()
+        val dirk = list.firstOrNull { it.name == "Dirk" }
+        if (dirk != null) {
+            list.remove(dirk)
+            list.add(0, dirk)
+        }
+        list
+    }
     val upcomingAppointments by viewModel.upcomingAppointments.collectAsState()
     val checkups by viewModel.allCheckups.collectAsState()
     
@@ -152,7 +161,7 @@ fun HomeScreen(
                             onDismissRequest = { expandedPersonDropdown = false }
                         ) {
                              // Family Members List
-                             familyMembers.forEach { member ->
+                             sortedMembers.forEach { member ->
                                  DropdownMenuItem(
                                      text = { Text(member.name + " (${member.relation}) bearbeiten") },
                                      leadingIcon = {
@@ -247,7 +256,7 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    familyMembers.forEach { member ->
+                    sortedMembers.forEach { member ->
                         val isSelected = member.name == selectedPerson
                         FilterChip(
                             selected = isSelected,

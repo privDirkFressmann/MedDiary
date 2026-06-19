@@ -51,6 +51,15 @@ fun AddEditAppointmentScreen(
 ) {
     val context = LocalContext.current
     val familyMembers by viewModel.familyMembers.collectAsState()
+    val sortedMembers = remember(familyMembers) {
+        val list = familyMembers.toMutableList()
+        val dirk = list.firstOrNull { it.name == "Dirk" }
+        if (dirk != null) {
+            list.remove(dirk)
+            list.add(0, dirk)
+        }
+        list
+    }
     
     val specialtiesList = remember {
         listOf(
@@ -253,7 +262,7 @@ fun AddEditAppointmentScreen(
                     onDismissRequest = { expandedPersonDropdown = false },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    familyMembers.forEach { member ->
+                    sortedMembers.forEach { member ->
                         DropdownMenuItem(
                             text = { Text(member.name) },
                             onClick = {
