@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Save
@@ -54,7 +55,8 @@ fun HomeScreen(
     onNavigateToAddAppointment: (Int?, Boolean) -> Unit,
     onNavigateToCheckups: () -> Unit,
     onNavigateToCalendar: () -> Unit,
-    onNavigateToVaccinations: () -> Unit
+    onNavigateToVaccinations: () -> Unit,
+    onNavigateToDoctors: () -> Unit
 ) {
     val context = LocalContext.current
     val selectedPerson by viewModel.selectedPerson.collectAsState()
@@ -193,6 +195,20 @@ fun HomeScreen(
                                  },
                                  onClick = {
                                      showAddPersonDialog = true
+                                     expandedPersonDropdown = false
+                                 }
+                             )
+                             HorizontalDivider()
+                             DropdownMenuItem(
+                                 text = {
+                                     Row(verticalAlignment = Alignment.CenterVertically) {
+                                         Icon(imageVector = Icons.Default.LocalHospital, contentDescription = null, modifier = Modifier.size(18.dp))
+                                         Spacer(modifier = Modifier.width(8.dp))
+                                         Text("Ärzte-Datenbank")
+                                     }
+                                 },
+                                 onClick = {
+                                     onNavigateToDoctors()
                                      expandedPersonDropdown = false
                                  }
                              )

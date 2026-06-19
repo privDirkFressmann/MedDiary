@@ -22,6 +22,7 @@ object BackupManager {
         val checkups = database.checkupDao().getAllCheckups().first()
         val attachments = database.attachmentDao().getAllAttachments().first()
         val vaccinations = database.vaccinationDao().getAllVaccinations().first()
+        val doctors = database.doctorDao().getAllDoctors().first()
 
         // Generate JSON
         val backupJson = JSONObject().apply {
@@ -102,6 +103,18 @@ object BackupManager {
                 })
             }
             put("attachments", attachArray)
+
+            // Doctors
+            val docArray = JSONArray()
+            doctors.forEach {
+                docArray.put(JSONObject().apply {
+                    put("id", it.id)
+                    put("name", it.name)
+                    put("address", it.address)
+                    put("phoneNumber", it.phoneNumber)
+                })
+            }
+            put("doctors", docArray)
         }
 
         contentResolver.openOutputStream(outputUri)?.use { outputStream ->
@@ -284,10 +297,26 @@ object BackupManager {
             }
         }
 
+        val doctors = mutableListOf<Doctor>()
+        val docArray = backupJson.optJSONArray("doctors")
+        if (docArray != null) {
+            for (i in 0 until docArray.length()) {
+                val obj = docArray.getJSONObject(i)
+                doctors.add(
+                    Doctor(
+                        name = obj.getString("name"),
+                        address = obj.optString("address", ""),
+                        phoneNumber = obj.optString("phoneNumber", "")
+                    )
+                )
+            }
+        }
+
         // Insert family members, checkups and vaccinations
         familyMembers.forEach { database.familyMemberDao().insertFamilyMember(it) }
         checkups.forEach { database.checkupDao().insertCheckup(it) }
         vaccinations.forEach { database.vaccinationDao().insertVaccination(it) }
+        doctors.forEach { database.doctorDao().insertDoctor(it) }
 
         tempDir.deleteRecursively()
     }

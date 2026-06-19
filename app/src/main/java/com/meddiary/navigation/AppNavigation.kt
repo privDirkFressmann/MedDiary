@@ -12,6 +12,7 @@ import com.meddiary.ui.screens.CalendarScreen
 import com.meddiary.ui.screens.CheckupsScreen
 import com.meddiary.ui.screens.HomeScreen
 import com.meddiary.ui.screens.VaccinationsScreen
+import com.meddiary.ui.screens.DoctorsScreen
 
 @Composable
 fun AppNavigation(
@@ -36,6 +37,9 @@ fun AppNavigation(
                 },
                 onNavigateToVaccinations = {
                     navController.navigate(Screen.Vaccinations.route)
+                },
+                onNavigateToDoctors = {
+                    navController.navigate(Screen.Doctors.route)
                 }
             )
         }
@@ -90,6 +94,15 @@ fun AppNavigation(
 
         composable(route = Screen.Vaccinations.route) {
             VaccinationsScreen(
+                viewModel = viewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = Screen.Doctors.route) {
+            DoctorsScreen(
                 viewModel = viewModel,
                 onNavigateBack = {
                     navController.popBackStack()

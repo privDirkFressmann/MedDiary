@@ -106,9 +106,9 @@ fun AddEditAppointmentScreen(
     }
     var previewImagePath by remember { mutableStateOf<String?>(null) }
 
-    val appointments by viewModel.allAppointments.collectAsState()
-    val existingDoctors = remember(appointments) {
-        appointments.map { it.doctor }.filter { it.isNotBlank() }.distinct().sorted()
+    val doctorsState by viewModel.allDoctors.collectAsState()
+    val existingDoctors = remember(doctorsState) {
+        doctorsState.map { it.name }.filter { it.isNotBlank() }.distinct().sorted()
     }
     val filteredDoctors = remember(existingDoctors, doctor) {
         if (doctor.isBlank()) {

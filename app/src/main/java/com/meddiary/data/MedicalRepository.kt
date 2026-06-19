@@ -7,9 +7,11 @@ class MedicalRepository(
     private val checkupDao: CheckupDao,
     private val familyMemberDao: FamilyMemberDao,
     private val attachmentDao: AttachmentDao,
-    private val vaccinationDao: VaccinationDao
+    private val vaccinationDao: VaccinationDao,
+    private val doctorDao: DoctorDao
 ) {
     val allAppointments: Flow<List<Appointment>> = appointmentDao.getAllAppointments()
+    val allDoctors: Flow<List<Doctor>> = doctorDao.getAllDoctors()
     
     fun getUpcomingAppointments(currentMillis: Long): Flow<List<Appointment>> {
         return appointmentDao.getUpcomingAppointments(currentMillis)
@@ -93,5 +95,18 @@ class MedicalRepository(
 
     suspend fun deleteAttachment(attachment: Attachment) {
         attachmentDao.deleteAttachment(attachment)
+    }
+
+    // Doctor operations
+    suspend fun insertDoctor(doctor: Doctor): Long {
+        return doctorDao.insertDoctor(doctor)
+    }
+
+    suspend fun updateDoctor(doctor: Doctor) {
+        doctorDao.updateDoctor(doctor)
+    }
+
+    suspend fun deleteDoctor(doctor: Doctor) {
+        doctorDao.deleteDoctor(doctor)
     }
 }

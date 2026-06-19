@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.meddiary.data.Appointment
 import com.meddiary.data.Attachment
 import com.meddiary.data.Checkup
+import com.meddiary.data.Doctor
 import com.meddiary.data.FamilyMember
 import com.meddiary.data.MedicalDatabase
 import com.meddiary.data.MedicalRepository
@@ -60,6 +61,13 @@ class MedicalViewModel(
         )
 
     val allVaccinations: StateFlow<List<Vaccination>> = repository.getAllVaccinations()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val allDoctors: StateFlow<List<Doctor>> = repository.allDoctors
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -307,6 +315,34 @@ class MedicalViewModel(
                 e.printStackTrace()
                 onResult(false, e.localizedMessage ?: e.message ?: "Fehler beim Import")
             }
+        }
+    }
+
+    // Doctor operations
+    fun saveDoctor(
+        id: Int = 0,
+        name: String,
+        address: String = "",
+        phoneNumber: String = ""
+    ) {
+        viewModelScope.launch {
+            val doctor = Doctor(
+                id = id,
+                name = name,
+                address = address,
+                phoneNumber = phoneNumber
+            )
+            if (id == 0) {
+                repository.insertDoctor(doctor)
+            } else {
+                repository.updateDoctor(doctor)
+            }
+        }
+    }
+
+    fun deleteDoctor(doctor: Doctor) {
+        viewModelScope.launch {
+            repository.deleteDoctor(doctor)
         }
     }
 }

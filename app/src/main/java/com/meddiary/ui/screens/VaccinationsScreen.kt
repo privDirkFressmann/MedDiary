@@ -81,6 +81,11 @@ fun VaccinationsScreen(
     var copyFromVaccination by remember { mutableStateOf<Vaccination?>(null) }
     var editVaccination by remember { mutableStateOf<Vaccination?>(null) }
 
+    val doctorsState by viewModel.allDoctors.collectAsState()
+    val doctorNames = remember(doctorsState) {
+        doctorsState.map { it.name }.filter { it.isNotBlank() }.distinct().sorted()
+    }
+
     // Date Picker State for Add Dialog
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -195,6 +200,7 @@ fun VaccinationsScreen(
                 initialBatch = editVaccination?.batchNumber ?: copyFromVaccination?.batchNumber ?: "",
                 initialDoctor = editVaccination?.doctorName ?: copyFromVaccination?.doctorName ?: "",
                 initialNotes = editVaccination?.notes ?: copyFromVaccination?.notes ?: "",
+                doctorSuggestions = doctorNames,
                 isEditMode = editVaccination != null,
                 onDismiss = { 
                     showAddDialog = false
@@ -639,6 +645,7 @@ fun AddVaccinationDialog(
     initialBatch: String = "",
     initialDoctor: String = "",
     initialNotes: String = "",
+    doctorSuggestions: List<String> = emptyList(),
     isEditMode: Boolean = false,
     onDismiss: () -> Unit,
     onConfirm: (String, Long, String, String, String) -> Unit,
@@ -792,13 +799,52 @@ fun AddVaccinationDialog(
                 }
 
                 // Doctor name
-                OutlinedTextField(
-                    value = doctor,
-                    onValueChange = { doctor = it },
-                    label = { Text("Arzt / Praxis") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                var expandedDoctorDropdown by remember { mutableStateOf(false) }
+                val filteredDoctors = remember(doctorSuggestions, doctor) {
+                    if (doctor.isBlank()) {
+                        doctorSuggestions
+                    } else {
+                        doctorSuggestions.filter { it.contains(doctor, ignoreCase = true) && it.lowercase() != doctor.lowercase() }
+                    }
+                }
+
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = doctor,
+                        onValueChange = {
+                            doctor = it
+                            expandedDoctorDropdown = true
+                        },
+                        label = { Text("Arzt / Praxis") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        trailingIcon = {
+                            if (doctorSuggestions.isNotEmpty()) {
+                                IconButton(onClick = { expandedDoctorDropdown = !expandedDoctorDropdown }) {
+                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Ärzte vorschlagen")
+                                }
+                            }
+                        }
+                    )
+                    if (filteredDoctors.isNotEmpty()) {
+                        DropdownMenu(
+                            expanded = expandedDoctorDropdown,
+                            onDismissRequest = { expandedDoctorDropdown = false },
+                            properties = androidx.compose.ui.window.PopupProperties(focusable = false),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            filteredDoctors.take(5).forEach { doc ->
+                                DropdownMenuItem(
+                                    text = { Text(doc) },
+                                    onClick = {
+                                        doctor = doc
+                                        expandedDoctorDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
 
                 // Batch Number (Chargennummer)
                 OutlinedTextField(

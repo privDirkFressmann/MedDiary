@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [Appointment::class, Checkup::class, FamilyMember::class, Attachment::class, Vaccination::class], version = 5, exportSchema = false)
+@Database(entities = [Appointment::class, Checkup::class, FamilyMember::class, Attachment::class, Vaccination::class, Doctor::class], version = 6, exportSchema = false)
 abstract class MedicalDatabase : RoomDatabase() {
 
     abstract fun appointmentDao(): AppointmentDao
@@ -13,6 +13,7 @@ abstract class MedicalDatabase : RoomDatabase() {
     abstract fun familyMemberDao(): FamilyMemberDao
     abstract fun attachmentDao(): AttachmentDao
     abstract fun vaccinationDao(): VaccinationDao
+    abstract fun doctorDao(): DoctorDao
 
     companion object {
         @Volatile
