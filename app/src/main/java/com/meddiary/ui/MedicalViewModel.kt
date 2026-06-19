@@ -28,7 +28,7 @@ class MedicalViewModel(
     val database: MedicalDatabase
 ) : ViewModel() {
 
-    private val _selectedPerson = MutableStateFlow("Dirk")
+    private val _selectedPerson = MutableStateFlow("")
     val selectedPerson: StateFlow<String> = _selectedPerson.asStateFlow()
 
     val allAppointments: StateFlow<List<Appointment>> = repository.allAppointments
@@ -68,15 +68,17 @@ class MedicalViewModel(
 
 
     init {
-        // Safe database initialization: check if profiles are empty and insert default "Dirk"
         viewModelScope.launch {
-            try {
-                val members = repository.allFamilyMembers.first()
-                if (members.isEmpty()) {
-                    addFamilyMember("Dirk", "Ich", 1990, "ALL")
+            repository.allFamilyMembers.collect { members ->
+                if (members.isNotEmpty()) {
+                    val currentSelected = _selectedPerson.value
+                    if (currentSelected.isBlank() || !members.any { it.name == currentSelected }) {
+                        val dirk = members.firstOrNull { it.name == "Dirk" }
+                        _selectedPerson.value = dirk?.name ?: members.first().name
+                    }
+                } else {
+                    _selectedPerson.value = ""
                 }
-            } catch (e: Exception) {
-                // Fail-safe
             }
         }
     }
@@ -299,9 +301,6 @@ class MedicalViewModel(
                 if (members.isNotEmpty()) {
                     val firstMember = members.firstOrNull { it.name == "Dirk" } ?: members.first()
                     selectPerson(firstMember.name)
-                } else {
-                    addFamilyMember("Dirk", "Ich", 1990, "ALL")
-                    selectPerson("Dirk")
                 }
                 onResult(true, null)
             } catch (e: Exception) {

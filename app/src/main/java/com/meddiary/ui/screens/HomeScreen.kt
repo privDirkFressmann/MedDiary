@@ -76,6 +76,10 @@ fun HomeScreen(
     var editingMember by remember { mutableStateOf<FamilyMember?>(null) }
     var expandedPersonDropdown by remember { mutableStateOf(false) }
 
+    LaunchedEffect(familyMembers) {
+        showAddPersonDialog = familyMembers.isEmpty()
+    }
+
     val personUpcomingAppointments = remember(upcomingAppointments, selectedPerson) {
         upcomingAppointments.filter { it.personName == selectedPerson }
     }
@@ -515,13 +519,17 @@ fun HomeScreen(
         var selectedGender by remember { mutableStateOf("M") } // "M", "F"
 
         AlertDialog(
-            onDismissRequest = { showAddPersonDialog = false },
-            title = { Text("Familienmitglied hinzufügen") },
+            onDismissRequest = {
+                if (familyMembers.isNotEmpty()) {
+                    showAddPersonDialog = false
+                }
+            },
+            title = { Text(if (familyMembers.isEmpty()) "Willkommen! Profil anlegen" else "Familienmitglied hinzufügen") },
             confirmButton = {
                 Button(
                     onClick = {
                         if (newName.isNotBlank()) {
-                            val relation = if (relationKind) "Kind" else "Partner"
+                            val relation = if (familyMembers.isEmpty()) "Ich" else if (relationKind) "Kind" else "Partner"
                             val birthYear = birthYearStr.toIntOrNull() ?: Calendar.getInstance().get(Calendar.YEAR)
                             viewModel.addFamilyMember(newName.trim(), relation, birthYear, selectedGender)
                             viewModel.selectPerson(newName.trim())
@@ -533,11 +541,13 @@ fun HomeScreen(
                     Text("Anlegen")
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showAddPersonDialog = false }) {
-                    Text("Abbrechen")
+            dismissButton = if (familyMembers.isNotEmpty()) {
+                {
+                    TextButton(onClick = { showAddPersonDialog = false }) {
+                        Text("Abbrechen")
+                    }
                 }
-            },
+            } else null,
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -581,39 +591,41 @@ fun HomeScreen(
                         }
                     }
 
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text("Profil-Typ:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = relationKind,
-                                onClick = { relationKind = true }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text("Kind", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Lädt U-Untersuchungen (Kinderheilkunde)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (familyMembers.isNotEmpty()) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text("Profil-Typ:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = relationKind,
+                                    onClick = { relationKind = true }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("Kind", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                    Text("Lädt U-Untersuchungen (Kinderheilkunde)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
-                        }
-                        
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = !relationKind,
-                                onClick = { relationKind = false }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text("Erwachsener", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Text("Lädt Standard-Vorsorgeuntersuchungen", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = !relationKind,
+                                    onClick = { relationKind = false }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("Erwachsener", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                    Text("Lädt Standard-Vorsorgeuntersuchungen", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
                     }

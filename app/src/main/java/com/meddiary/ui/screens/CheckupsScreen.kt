@@ -228,7 +228,7 @@ fun CheckupsScreen(
                     Button(
                         onClick = {
                             if (newName.isNotBlank()) {
-                                val relation = if (relationKind) "Kind" else "Partner"
+                                val relation = if (familyMembers.isEmpty()) "Ich" else if (relationKind) "Kind" else "Partner"
                                 val birthYear = birthYearStr.toIntOrNull() ?: java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
                                 viewModel.addFamilyMember(newName.trim(), relation, birthYear, selectedGender)
                                 viewModel.selectPerson(newName.trim())
