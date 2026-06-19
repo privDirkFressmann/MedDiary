@@ -196,11 +196,13 @@ class MedicalViewModel(
         dateMillis: Long,
         batchNumber: String = "",
         doctorName: String = "",
-        notes: String = ""
+        notes: String = "",
+        id: Int = 0
     ) {
         viewModelScope.launch {
             repository.insertVaccination(
                 Vaccination(
+                    id = id,
                     personName = personName,
                     title = title,
                     dateMillis = dateMillis,

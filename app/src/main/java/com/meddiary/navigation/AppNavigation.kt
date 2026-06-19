@@ -25,8 +25,8 @@ fun AppNavigation(
         composable(route = Screen.Home.route) {
             HomeScreen(
                 viewModel = viewModel,
-                onNavigateToAddAppointment = { id ->
-                    navController.navigate(Screen.AddEditAppointment.passId(id))
+                onNavigateToAddAppointment = { id, copy ->
+                    navController.navigate(Screen.AddEditAppointment.passId(id, copy))
                 },
                 onNavigateToCheckups = {
                     navController.navigate(Screen.Checkups.route)
@@ -47,14 +47,20 @@ fun AppNavigation(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
+                },
+                navArgument("copy") {
+                    type = NavType.BoolType
+                    defaultValue = false
                 }
             )
         ) { backStackEntry ->
             val idStr = backStackEntry.arguments?.getString("appointmentId")
             val id = idStr?.toIntOrNull()
+            val copy = backStackEntry.arguments?.getBoolean("copy") ?: false
             AddEditAppointmentScreen(
                 viewModel = viewModel,
                 appointmentId = id,
+                copy = copy,
                 onNavigateBack = {
                     navController.popBackStack()
                 }
@@ -73,8 +79,8 @@ fun AppNavigation(
         composable(route = Screen.Calendar.route) {
             CalendarScreen(
                 viewModel = viewModel,
-                onNavigateToAddAppointment = { id ->
-                    navController.navigate(Screen.AddEditAppointment.passId(id))
+                onNavigateToAddAppointment = { id, copy ->
+                    navController.navigate(Screen.AddEditAppointment.passId(id, copy))
                 },
                 onNavigateBack = {
                     navController.popBackStack()

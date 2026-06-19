@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -66,8 +67,10 @@ fun VaccinationsScreen(
         familyMembers.firstOrNull { it.name == selectedPerson }
     }
 
+    var copyFromVaccination by remember { mutableStateOf<Vaccination?>(null) }
+    var editVaccination by remember { mutableStateOf<Vaccination?>(null) }
+
     // Date Picker State for Add Dialog
-    val dateState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
     var showDatePicker by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -149,6 +152,14 @@ fun VaccinationsScreen(
                 0 -> LoggedVaccinationsList(
                     vaccinations = personVaccinations,
                     dateFormatter = dateFormatter,
+                    onCopyVaccination = { vac ->
+                        copyFromVaccination = vac
+                        showAddDialog = true
+                    },
+                    onEditVaccination = { vac ->
+                        editVaccination = vac
+                        showAddDialog = true
+                    },
                     onDeleteVaccination = { viewModel.deleteVaccination(it) }
                 )
                 1 -> StikoRecommendationsList(
@@ -164,14 +175,37 @@ fun VaccinationsScreen(
             }
         }
 
-        // Add Vaccination Dialog
+        // Add/Edit/Copy Vaccination Dialog
         if (showAddDialog) {
+            val initialDate = editVaccination?.dateMillis ?: copyFromVaccination?.dateMillis ?: System.currentTimeMillis()
+            val dateState = rememberDatePickerState(initialSelectedDateMillis = initialDate)
             AddVaccinationDialog(
-                onDismiss = { showAddDialog = false },
-                onConfirm = { title, dateMillis, batch, doctor, notes ->
-                    viewModel.addVaccination(selectedPerson, title, dateMillis, batch, doctor, notes)
+                initialTitle = editVaccination?.title ?: copyFromVaccination?.title ?: "",
+                initialBatch = editVaccination?.batchNumber ?: copyFromVaccination?.batchNumber ?: "",
+                initialDoctor = editVaccination?.doctorName ?: copyFromVaccination?.doctorName ?: "",
+                initialNotes = editVaccination?.notes ?: copyFromVaccination?.notes ?: "",
+                isEditMode = editVaccination != null,
+                onDismiss = { 
                     showAddDialog = false
-                    Toast.makeText(context, "Impfung erfolgreich erfasst!", Toast.LENGTH_SHORT).show()
+                    copyFromVaccination = null
+                    editVaccination = null
+                },
+                onConfirm = { title, dateMillis, batch, doctor, notes ->
+                    viewModel.addVaccination(
+                        personName = selectedPerson,
+                        title = title,
+                        dateMillis = dateMillis,
+                        batchNumber = batch,
+                        doctorName = doctor,
+                        notes = notes,
+                        id = editVaccination?.id ?: 0
+                    )
+                    showAddDialog = false
+                    val isEdit = editVaccination != null
+                    copyFromVaccination = null
+                    editVaccination = null
+                    val msg = if (isEdit) "Impfung erfolgreich aktualisiert!" else "Impfung erfolgreich erfasst!"
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                 },
                 dateState = dateState,
                 showDatePicker = showDatePicker,
@@ -185,6 +219,8 @@ fun VaccinationsScreen(
 fun LoggedVaccinationsList(
     vaccinations: List<Vaccination>,
     dateFormatter: SimpleDateFormat,
+    onCopyVaccination: (Vaccination) -> Unit,
+    onEditVaccination: (Vaccination) -> Unit,
     onDeleteVaccination: (Vaccination) -> Unit
 ) {
     if (vaccinations.isEmpty()) {
@@ -225,7 +261,9 @@ fun LoggedVaccinationsList(
         ) {
             items(vaccinations, key = { it.id }) { vaccination ->
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onEditVaccination(vaccination) },
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Row(
@@ -266,6 +304,13 @@ fun LoggedVaccinationsList(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                        }
+                        IconButton(onClick = { onCopyVaccination(vaccination) }) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "Eintrag kopieren",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
                         IconButton(onClick = { onDeleteVaccination(vaccination) }) {
                             Icon(
@@ -569,16 +614,21 @@ fun StatusBadge(status: VaccinationStatus, dateFormatter: SimpleDateFormat) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddVaccinationDialog(
+    initialTitle: String = "",
+    initialBatch: String = "",
+    initialDoctor: String = "",
+    initialNotes: String = "",
+    isEditMode: Boolean = false,
     onDismiss: () -> Unit,
     onConfirm: (String, Long, String, String, String) -> Unit,
     dateState: DatePickerState,
     showDatePicker: Boolean,
     onShowDatePickerChange: (Boolean) -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var batch by remember { mutableStateOf("") }
-    var doctor by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
+    var title by remember(initialTitle) { mutableStateOf(initialTitle) }
+    var batch by remember(initialBatch) { mutableStateOf(initialBatch) }
+    var doctor by remember(initialDoctor) { mutableStateOf(initialDoctor) }
+    var notes by remember(initialNotes) { mutableStateOf(initialNotes) }
 
     val formatter = remember { SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()) }
     val dateText = remember(dateState.selectedDateMillis) {
@@ -589,12 +639,12 @@ fun AddVaccinationDialog(
     val presetVaccines = listOf(
         "Tetanus", "Diphtherie", "Pertussis", "Poliomyelitis", "MMR (Masern, Mumps, Röteln)",
         "FSME (Zecken)", "Influenza (Grippe)", "Pneumokokken", "Herpes Zoster (Gürtelrose)",
-        "HPV", "Hepatitis B", "Windpocken", "Meningokokken", "Sonstige"
+        "HPV", "Hepatitis B", "Windpocken", "Meningokokken", "COVID-19", "Sonstige"
     )
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Impfung erfassen") },
+        title = { Text(if (isEditMode) "Impfung bearbeiten" else "Impfung erfassen") },
         confirmButton = {
             Button(
                 onClick = {
@@ -640,11 +690,40 @@ fun AddVaccinationDialog(
                         modifier = Modifier.fillMaxWidth(0.9f)
                     ) {
                         presetVaccines.forEach { vaccine ->
+                            val isSelected = remember(title) {
+                                if (vaccine == "Sonstige") false else title.split(",").map { it.trim() }.contains(vaccine)
+                            }
                             DropdownMenuItem(
-                                text = { Text(vaccine) },
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        if (vaccine != "Sonstige") {
+                                            Checkbox(
+                                                checked = isSelected,
+                                                onCheckedChange = null,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                        }
+                                        Text(vaccine)
+                                    }
+                                },
                                 onClick = {
-                                    title = if (vaccine == "Sonstige") "" else vaccine
-                                    expandedDropdown = false
+                                    if (vaccine != "Sonstige") {
+                                        val currentTitle = title.trim()
+                                        val parts = if (currentTitle.isEmpty()) emptyList<String>() else currentTitle.split(",").map { it.trim() }
+                                        val newParts = parts.toMutableList()
+                                        if (newParts.contains(vaccine)) {
+                                            newParts.remove(vaccine)
+                                        } else {
+                                            newParts.add(vaccine)
+                                        }
+                                        title = newParts.joinToString(", ")
+                                    } else {
+                                        expandedDropdown = false
+                                    }
                                 }
                             )
                         }

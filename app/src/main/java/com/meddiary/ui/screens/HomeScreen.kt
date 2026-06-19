@@ -51,7 +51,7 @@ import com.meddiary.ui.components.AppointmentCard
 @Composable
 fun HomeScreen(
     viewModel: MedicalViewModel,
-    onNavigateToAddAppointment: (Int?) -> Unit,
+    onNavigateToAddAppointment: (Int?, Boolean) -> Unit,
     onNavigateToCheckups: () -> Unit,
     onNavigateToCalendar: () -> Unit,
     onNavigateToVaccinations: () -> Unit
@@ -221,7 +221,7 @@ fun HomeScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { onNavigateToAddAppointment(null) },
+                onClick = { onNavigateToAddAppointment(null, false) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
@@ -474,7 +474,7 @@ fun HomeScreen(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Button(
-                                    onClick = { onNavigateToAddAppointment(null) },
+                                    onClick = { onNavigateToAddAppointment(null, false) },
                                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                 ) {
                                     Text("Jetzt eintragen")
@@ -488,7 +488,8 @@ fun HomeScreen(
                     AppointmentCard(
                         appointment = appointment,
                         onCheckedChange = { viewModel.toggleAppointmentCompleted(appointment) },
-                        onEditClick = { onNavigateToAddAppointment(appointment.id) },
+                        onEditClick = { onNavigateToAddAppointment(appointment.id, false) },
+                        onCopyClick = { onNavigateToAddAppointment(appointment.id, true) },
                         onDeleteClick = { viewModel.deleteAppointment(appointment) }
                     )
                 }

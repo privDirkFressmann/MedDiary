@@ -33,8 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.meddiary.ui.MedicalViewModel
 import com.meddiary.data.Appointment
-import com.meddiary.data.Attachment
 import java.io.File
+import kotlinx.coroutines.flow.first
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -46,6 +46,7 @@ import java.util.Locale
 fun AddEditAppointmentScreen(
     viewModel: MedicalViewModel,
     appointmentId: Int?,
+    copy: Boolean = false,
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -89,7 +90,7 @@ fun AddEditAppointmentScreen(
 
     // File Attachments States
     val newAttachments = remember { mutableStateListOf<Pair<String, String>>() } // Path, Name
-    val savedAttachments by if (appointmentId != null && appointmentId != 0) {
+    val savedAttachments by if (appointmentId != null && appointmentId != 0 && !copy) {
         viewModel.getAttachmentsForAppointment(appointmentId).collectAsState(initial = emptyList())
     } else {
         remember { mutableStateOf(emptyList()) }
@@ -121,13 +122,13 @@ fun AddEditAppointmentScreen(
         }
     }
 
-    // Load existing appointment if editing
+    // Load existing appointment if editing or copying
     LaunchedEffect(appointmentId) {
         if (appointmentId != null && appointmentId != 0) {
             viewModel.getAppointmentById(appointmentId).collect { appt ->
                 if (appt != null && existingAppointment == null) {
                     existingAppointment = appt
-                    isEditMode = true
+                    isEditMode = !copy
                     selectedPerson = appt.personName
                     title = appt.title
                     doctor = appt.doctor
@@ -142,6 +143,30 @@ fun AddEditAppointmentScreen(
                     } else {
                         selectedSpecialty = "Sonstige"
                         customSpecialty = appt.specialty
+                    }
+
+                    if (copy) {
+                        try {
+                            viewModel.getAttachmentsForAppointment(appointmentId).first().forEach { att ->
+                                val srcFile = File(att.filePath)
+                                if (srcFile.exists()) {
+                                    val attachmentsDir = File(context.filesDir, "attachments").apply { mkdirs() }
+                                    val destFile = File(attachmentsDir, "${System.currentTimeMillis()}_${srcFile.name}")
+                                    try {
+                                        srcFile.inputStream().use { input ->
+                                            destFile.outputStream().use { output ->
+                                                input.copyTo(output)
+                                            }
+                                        }
+                                        newAttachments.add(Pair(destFile.absolutePath, att.displayName))
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 }
             }
@@ -178,7 +203,7 @@ fun AddEditAppointmentScreen(
                         onClick = {
                             if (isSaveEnabled) {
                                 viewModel.saveAppointment(
-                                    id = appointmentId ?: 0,
+                                    id = if (copy) 0 else (appointmentId ?: 0),
                                     personName = selectedPerson,
                                     title = title,
                                     doctor = doctor,
@@ -186,7 +211,7 @@ fun AddEditAppointmentScreen(
                                     dateMillis = selectedDateMillis,
                                     notes = notes,
                                     reminderEnabled = reminderEnabled,
-                                    isCompleted = existingAppointment?.isCompleted ?: false,
+                                    isCompleted = if (copy) false else (existingAppointment?.isCompleted ?: false),
                                     newAttachments = newAttachments
                                 )
                                 onNavigateBack()
@@ -202,10 +227,11 @@ fun AddEditAppointmentScreen(
     ) { paddingValues ->
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
+                .navigationBarsPadding()
+                .imePadding()
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Dropdown to select the family member
@@ -454,7 +480,7 @@ fun AddEditAppointmentScreen(
                 onClick = {
                     if (isSaveEnabled) {
                         viewModel.saveAppointment(
-                            id = appointmentId ?: 0,
+                            id = if (copy) 0 else (appointmentId ?: 0),
                             personName = selectedPerson,
                             title = title,
                             doctor = doctor,
@@ -462,7 +488,7 @@ fun AddEditAppointmentScreen(
                             dateMillis = selectedDateMillis,
                             notes = notes,
                             reminderEnabled = reminderEnabled,
-                            isCompleted = existingAppointment?.isCompleted ?: false,
+                            isCompleted = if (copy) false else (existingAppointment?.isCompleted ?: false),
                             newAttachments = newAttachments
                         )
                         onNavigateBack()
@@ -473,6 +499,7 @@ fun AddEditAppointmentScreen(
             ) {
                 Text("Termin speichern")
             }
+            Spacer(modifier = Modifier.height(32.dp))
         }
 
         // Image Preview Dialog

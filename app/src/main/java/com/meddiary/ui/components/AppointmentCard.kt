@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,6 +28,7 @@ import com.meddiary.ui.theme.CoralAlert
 fun AppointmentCard(
     appointment: Appointment,
     onEditClick: () -> Unit,
+    onCopyClick: () -> Unit,
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier,
     onCheckedChange: () -> Unit = {},
@@ -144,6 +146,14 @@ fun AppointmentCard(
                         )
                     }
                 }
+            }
+            
+            IconButton(onClick = onCopyClick) {
+                Icon(
+                    imageVector = Icons.Default.ContentCopy,
+                    contentDescription = "Termin kopieren",
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                )
             }
             
             IconButton(onClick = onDeleteClick) {

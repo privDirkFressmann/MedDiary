@@ -28,7 +28,7 @@ import java.util.Locale
 @Composable
 fun CalendarScreen(
     viewModel: MedicalViewModel,
-    onNavigateToAddAppointment: (Int?) -> Unit,
+    onNavigateToAddAppointment: (Int?, Boolean) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     val familyMembers by viewModel.familyMembers.collectAsState()
@@ -199,7 +199,7 @@ fun CalendarScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Button(
-                            onClick = { onNavigateToAddAppointment(null) }
+                            onClick = { onNavigateToAddAppointment(null, false) }
                         ) {
                             Text("Arztbesuch hinzufügen")
                         }
@@ -244,7 +244,8 @@ fun CalendarScreen(
                                 showCheckbox = false,
                                 useStrikethrough = false,
                                 indicatorColor = color,
-                                onEditClick = { onNavigateToAddAppointment(appointment.id) },
+                                onEditClick = { onNavigateToAddAppointment(appointment.id, false) },
+                                onCopyClick = { onNavigateToAddAppointment(appointment.id, true) },
                                 onDeleteClick = { viewModel.deleteAppointment(appointment) }
                             )
                         }
