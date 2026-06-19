@@ -432,6 +432,50 @@ fun StikoRecommendationsList(
         }
     }
 
+    // Sort recommendations so that outstanding (Overdue and Missing) ones appear at the top
+    val sortedRecommendations = remember(recommendations, vaccinations) {
+        recommendations.map { rec ->
+            // Resolve the status for this recommendation
+            val matches = vaccinations.filter { it.title.contains(rec.title.split(" ")[0], ignoreCase = true) }
+            val lastVaccination = matches.maxByOrNull { it.dateMillis }
+
+            val status: VaccinationStatus = when {
+                lastVaccination == null -> {
+                    if (isChild && rec.title.contains("HPV") && (age < 9 || age > 14)) {
+                        VaccinationStatus.NotYetRecommended
+                    } else if (!isChild && (rec.title.contains("Herpes") || rec.title.contains("Pneumokokken") || rec.title.contains("Influenza")) && age < 60) {
+                        VaccinationStatus.RecommendedLater("Empfohlen ab 60 Jahren")
+                    } else {
+                        VaccinationStatus.Missing
+                    }
+                }
+                rec.intervalYears != null -> {
+                    val cal = Calendar.getInstance().apply {
+                        timeInMillis = lastVaccination.dateMillis
+                        add(Calendar.YEAR, rec.intervalYears)
+                    }
+                    if (cal.timeInMillis < System.currentTimeMillis()) {
+                        VaccinationStatus.Overdue(lastVaccination.dateMillis)
+                    } else {
+                        VaccinationStatus.UpToDate(lastVaccination.dateMillis, cal.timeInMillis)
+                    }
+                }
+                else -> {
+                    VaccinationStatus.UpToDate(lastVaccination.dateMillis, null)
+                }
+            }
+            Pair(rec, status)
+        }.sortedBy { (_, status) ->
+            when (status) {
+                is VaccinationStatus.Overdue -> 0
+                is VaccinationStatus.Missing -> 1
+                is VaccinationStatus.UpToDate -> 2
+                is VaccinationStatus.RecommendedLater -> 3
+                is VaccinationStatus.NotYetRecommended -> 4
+            }
+        }
+    }
+
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -460,41 +504,7 @@ fun StikoRecommendationsList(
             }
         }
 
-        items(recommendations) { rec ->
-            // Find if there is a recorded vaccination of this type
-            val matches = vaccinations.filter { it.title.contains(rec.title.split(" ")[0], ignoreCase = true) }
-            val lastVaccination = matches.maxByOrNull { it.dateMillis }
-
-            // Determine status
-            val status: VaccinationStatus = when {
-                lastVaccination == null -> {
-                    // Check if they are in the target group or if it's general
-                    if (isChild && rec.title.contains("HPV") && (age < 9 || age > 14)) {
-                        VaccinationStatus.NotYetRecommended
-                    } else if (!isChild && (rec.title.contains("Herpes") || rec.title.contains("Pneumokokken") || rec.title.contains("Influenza")) && age < 60) {
-                        VaccinationStatus.RecommendedLater("Empfohlen ab 60 Jahren")
-                    } else {
-                        VaccinationStatus.Missing
-                    }
-                }
-                rec.intervalYears != null -> {
-                    // Check if it's expired
-                    val cal = Calendar.getInstance().apply {
-                        timeInMillis = lastVaccination.dateMillis
-                        add(Calendar.YEAR, rec.intervalYears)
-                    }
-                    if (cal.timeInMillis < System.currentTimeMillis()) {
-                        VaccinationStatus.Overdue(lastVaccination.dateMillis)
-                    } else {
-                        VaccinationStatus.UpToDate(lastVaccination.dateMillis, cal.timeInMillis)
-                    }
-                }
-                else -> {
-                    // One-time vaccine, and they have it
-                    VaccinationStatus.UpToDate(lastVaccination.dateMillis, null)
-                }
-            }
-
+        items(sortedRecommendations) { (rec, status) ->
             RecommendationCard(
                 rec = rec,
                 status = status,
