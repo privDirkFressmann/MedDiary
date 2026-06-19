@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.meddiary.ui.MedicalViewModel
 import com.meddiary.data.Vaccination
 import com.meddiary.data.FamilyMember
@@ -643,10 +644,13 @@ fun AddVaccinationDialog(
         "HPV", "Hepatitis B", "Windpocken", "Meningokokken", "COVID-19", "Sonstige"
     )
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.95f)
                 .wrapContentHeight()
                 .padding(16.dp)
                 .imePadding()
