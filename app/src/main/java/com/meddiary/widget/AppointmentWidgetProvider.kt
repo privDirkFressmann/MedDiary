@@ -6,19 +6,10 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.view.View
+import android.net.Uri
 import android.widget.RemoteViews
 import com.meddiary.MainActivity
-import com.meddiary.MedDiaryApplication
 import com.meddiary.R
-import com.meddiary.data.Appointment
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class AppointmentWidgetProvider : AppWidgetProvider() {
 
@@ -46,20 +37,12 @@ class AppointmentWidgetProvider : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        val application = context.applicationContext as? MedDiaryApplication ?: return
-        val appointmentDao = application.database.appointmentDao()
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val upcoming = appointmentDao.getUpcomingAppointments(System.currentTimeMillis()).first()
-                CoroutineScope(Dispatchers.Main).launch {
-                    for (appWidgetId in appWidgetIds) {
-                        updateAppWidget(context, appWidgetManager, appWidgetId, upcoming)
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+        // Notify the list view that data changed
+        appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widget_list)
+        
+        // Update the widget shell
+        for (appWidgetId in appWidgetIds) {
+            updateAppWidget(context, appWidgetManager, appWidgetId)
         }
     }
 }
@@ -67,47 +50,36 @@ class AppointmentWidgetProvider : AppWidgetProvider() {
 private fun updateAppWidget(
     context: Context,
     appWidgetManager: AppWidgetManager,
-    appWidgetId: Int,
-    appointments: List<Appointment>
+    appWidgetId: Int
 ) {
     val views = RemoteViews(context.packageName, R.layout.appointment_widget)
 
-    // Clear previous items from the container
-    views.removeAllViews(R.id.widget_list_container)
-
-    if (appointments.isEmpty()) {
-        views.setViewVisibility(R.id.widget_empty_view, View.VISIBLE)
-        views.setViewVisibility(R.id.widget_list_container, View.GONE)
-    } else {
-        views.setViewVisibility(R.id.widget_empty_view, View.GONE)
-        views.setViewVisibility(R.id.widget_list_container, View.VISIBLE)
-
-        // Show up to 3 upcoming appointments
-        for (appointment in appointments.take(3)) {
-            val itemView = RemoteViews(context.packageName, R.layout.widget_item_appointment)
-            
-            val formattedDate = SimpleDateFormat("EEE, dd. MMM - HH:mm", Locale.GERMAN).format(Date(appointment.dateMillis))
-            val doctorText = if (appointment.doctor.isNotBlank()) "bei ${appointment.doctor}" else appointment.specialty
-
-            itemView.setTextViewText(R.id.widget_item_date, "$formattedDate Uhr")
-            itemView.setTextViewText(R.id.widget_item_title, appointment.title)
-            itemView.setTextViewText(R.id.widget_item_details, "$doctorText • ${appointment.personName}")
-
-            views.addView(R.id.widget_list_container, itemView)
-        }
+    // Set up the intent that starts the WidgetService, which will
+    // provide the views for this collection.
+    val intent = Intent(context, WidgetService::class.java).apply {
+        putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+        // Set data to force system to re-bind adapter when widget receives an update
+        data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
     }
+    views.setRemoteAdapter(R.id.widget_list, intent)
 
-    // Set pending intent to open app when clicking the header or empty view
+    // Set empty view
+    views.setEmptyView(R.id.widget_list, R.id.widget_empty_view)
+
+    // Set pending intent template for list items
+    val clickIntent = Intent(context, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+    }
     val pendingIntent = PendingIntent.getActivity(
         context,
         0,
-        Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        },
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        clickIntent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
     )
+    views.setPendingIntentTemplate(R.id.widget_list, pendingIntent)
+
+    // Set pending intent for header
     views.setOnClickPendingIntent(R.id.widget_header, pendingIntent)
-    views.setOnClickPendingIntent(R.id.widget_empty_view, pendingIntent)
 
     appWidgetManager.updateAppWidget(appWidgetId, views)
 }

@@ -43,6 +43,11 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/appointment_widget_info" />
         </receiver>
+
+        <!-- Widget Service -->
+        <service
+            android:name=".widget.WidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
     </application>
 
 </manifest>

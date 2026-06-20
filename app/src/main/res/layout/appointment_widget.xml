@@ -37,12 +37,14 @@
         android:textSize="13sp"
         android:visibility="gone" />
 
-    <!-- Container for dynamic items -->
-    <LinearLayout
-        android:id="@+id/widget_list_container"
+    <!-- Scrollable ListView for items -->
+    <ListView
+        android:id="@+id/widget_list"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="8dp" />
+        android:layout_height="match_parent"
+        android:divider="@null"
+        android:dividerHeight="0dp"
+        android:padding="8dp"
+        android:clipToPadding="false" />
 
 </LinearLayout>
