@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Calendar
+import com.meddiary.MedDiaryApplication
+import com.meddiary.widget.WidgetUpdater
 
 class MedicalViewModel(
     private val repository: MedicalRepository,
@@ -148,18 +150,21 @@ class MedicalViewModel(
                     )
                 )
             }
+            WidgetUpdater.updateWidget(MedDiaryApplication.instance)
         }
     }
 
     fun deleteAppointment(appointment: Appointment) {
         viewModelScope.launch {
             repository.deleteAppointment(appointment)
+            WidgetUpdater.updateWidget(MedDiaryApplication.instance)
         }
     }
 
     fun toggleAppointmentCompleted(appointment: Appointment) {
         viewModelScope.launch {
             repository.updateAppointment(appointment.copy(isCompleted = !appointment.isCompleted))
+            WidgetUpdater.updateWidget(MedDiaryApplication.instance)
         }
     }
 
