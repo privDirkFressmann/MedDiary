@@ -1,5 +1,6 @@
 package com.meddiary
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -7,10 +8,13 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.meddiary.data.MedicalRepository
 import com.meddiary.navigation.AppNavigation
+import com.meddiary.navigation.Screen
 import com.meddiary.ui.MedicalViewModel
 import com.meddiary.ui.MedicalViewModelFactory
 import com.meddiary.ui.theme.MedDiaryTheme
@@ -30,8 +34,11 @@ class MainActivity : ComponentActivity() {
         MedicalViewModelFactory(repo, app.database)
     }
 
+    private val intentState = mutableStateOf<Intent?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        intentState.value = intent
         setContent {
             MedDiaryTheme {
                 Surface(
@@ -43,8 +50,26 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         viewModel = viewModel
                     )
+
+                    // Listen for incoming widget deep links
+                    LaunchedEffect(intentState.value) {
+                        intentState.value?.let { currentIntent ->
+                            val appointmentId = currentIntent.getIntExtra("appointment_id", -1)
+                            if (appointmentId != -1) {
+                                navController.navigate(Screen.AddEditAppointment.passId(appointmentId, false))
+                                // Clear the extra and intent state so orientation changes don't re-trigger navigation
+                                currentIntent.removeExtra("appointment_id")
+                                intentState.value = null
+                            }
+                        }
+                    }
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intentState.value = intent
     }
 }

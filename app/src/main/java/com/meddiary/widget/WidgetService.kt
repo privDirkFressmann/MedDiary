@@ -59,7 +59,9 @@ class AppointmentRemoteViewsFactory(private val context: Context) : RemoteViewsS
         views.setTextViewText(R.id.widget_item_details, "$doctorText • ${appointment.personName}")
 
         // Add a click fillInIntent so clicking an item opens the app
-        val fillInIntent = Intent()
+        val fillInIntent = Intent().apply {
+            putExtra("appointment_id", appointment.id)
+        }
         views.setOnClickFillInIntent(R.id.widget_item_root, fillInIntent)
 
         return views
