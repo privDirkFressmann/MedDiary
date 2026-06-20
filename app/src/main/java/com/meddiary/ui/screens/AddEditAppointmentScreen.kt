@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.provider.CalendarContract
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -85,6 +86,7 @@ fun AddEditAppointmentScreen(
     var customSpecialty by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var reminderEnabled by remember { mutableStateOf(false) }
+    var addToCalendarEnabled by remember { mutableStateOf(false) }
     
     val calendar = remember { Calendar.getInstance() }
     var selectedDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -223,6 +225,16 @@ fun AddEditAppointmentScreen(
                                     isCompleted = if (copy) false else (existingAppointment?.isCompleted ?: false),
                                     newAttachments = newAttachments
                                 )
+                                if (addToCalendarEnabled) {
+                                    launchCalendarIntent(
+                                        context = context,
+                                        title = title,
+                                        doctor = doctor,
+                                        specialty = finalSpecialty,
+                                        dateMillis = selectedDateMillis,
+                                        notes = notes
+                                    )
+                                }
                                 onNavigateBack()
                             }
                         },
@@ -452,6 +464,21 @@ fun AddEditAppointmentScreen(
                 }
             }
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = addToCalendarEnabled,
+                    onCheckedChange = { addToCalendarEnabled = it }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text("In System-Kalender eintragen", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text("Öffnet beim Speichern die Kalender-App, um den Termin einzutragen", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
             // File Attachments Section
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             
@@ -520,6 +547,16 @@ fun AddEditAppointmentScreen(
                             isCompleted = if (copy) false else (existingAppointment?.isCompleted ?: false),
                             newAttachments = newAttachments
                         )
+                        if (addToCalendarEnabled) {
+                            launchCalendarIntent(
+                                context = context,
+                                title = title,
+                                doctor = doctor,
+                                specialty = finalSpecialty,
+                                dateMillis = selectedDateMillis,
+                                notes = notes
+                            )
+                        }
                         onNavigateBack()
                     }
                 },
@@ -729,5 +766,36 @@ fun openAttachment(context: Context, filePath: String, onShowImagePreview: (Stri
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+}
+
+// Helper to launch calendar insert intent
+fun launchCalendarIntent(
+    context: Context,
+    title: String,
+    doctor: String,
+    specialty: String,
+    dateMillis: Long,
+    notes: String
+) {
+    val intent = Intent(Intent.ACTION_INSERT).apply {
+        data = CalendarContract.Events.CONTENT_URI
+        val displayTitle = if (doctor.isNotBlank()) {
+            "Arzttermin: $title ($doctor)"
+        } else {
+            "Arzttermin: $title ($specialty)"
+        }
+        putExtra(CalendarContract.Events.TITLE, displayTitle)
+        putExtra(CalendarContract.Events.DESCRIPTION, notes)
+        if (doctor.isNotBlank()) {
+            putExtra(CalendarContract.Events.EVENT_LOCATION, doctor)
+        }
+        putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, dateMillis)
+        putExtra(CalendarContract.EXTRA_EVENT_END_TIME, dateMillis + 60 * 60 * 1000) // Standard 1 hour duration
+    }
+    try {
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
 }
