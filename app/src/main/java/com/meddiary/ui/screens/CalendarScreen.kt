@@ -20,7 +20,11 @@ import com.meddiary.ui.components.AppointmentCard
 import com.meddiary.ui.theme.AccentBlue
 import com.meddiary.ui.theme.CoralAlert
 import com.meddiary.data.Doctor
+import com.meddiary.data.Appointment
+import com.meddiary.data.Attachment
 import com.meddiary.ui.components.DoctorDetailsDialog
+import com.meddiary.ui.components.AppointmentDetailsDialog
+import kotlinx.coroutines.flow.flowOf
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -41,6 +45,14 @@ fun CalendarScreen(
     val context = LocalContext.current
     val doctors by viewModel.allDoctors.collectAsState()
     var activeDoctorDetails by remember { mutableStateOf<Doctor?>(null) }
+    var activeAppointmentDetails by remember { mutableStateOf<Appointment?>(null) }
+    val activeAppointmentAttachments by remember(activeAppointmentDetails) {
+        if (activeAppointmentDetails != null) {
+            viewModel.getAttachmentsForAppointment(activeAppointmentDetails!!.id)
+        } else {
+            flowOf(emptyList())
+        }
+    }.collectAsState(initial = emptyList())
     val familyMembers by viewModel.familyMembers.collectAsState()
     val appointments by viewModel.allAppointments.collectAsState()
 
@@ -78,6 +90,8 @@ fun CalendarScreen(
         }
     }
 
+    val currentTimeMillis = remember { System.currentTimeMillis() }
+
     val filteredAppointments = remember(personFilteredAppointments, selectedSpecialtyFilter) {
         if (selectedSpecialtyFilter == "Alle") {
             personFilteredAppointments
@@ -86,8 +100,9 @@ fun CalendarScreen(
         }
     }
 
-    val sortedAppointments = remember(filteredAppointments) {
-        filteredAppointments.sortedByDescending { it.dateMillis }
+    val sortedAppointments = remember(filteredAppointments, currentTimeMillis) {
+        val (upcoming, past) = filteredAppointments.partition { it.dateMillis >= currentTimeMillis }
+        upcoming.sortedBy { it.dateMillis } + past.sortedByDescending { it.dateMillis }
     }
 
     val groupedAppointments = remember(sortedAppointments) {
@@ -96,8 +111,6 @@ fun CalendarScreen(
             SimpleDateFormat("MMMM yyyy", Locale.GERMAN).format(cal.time)
         }
     }
-
-    val currentTimeMillis = remember { System.currentTimeMillis() }
 
     Scaffold(
         topBar = {
@@ -254,9 +267,7 @@ fun CalendarScreen(
                                 showCheckbox = false,
                                 useStrikethrough = false,
                                 indicatorColor = color,
-                                onEditClick = { onNavigateToAddAppointment(appointment.id, false) },
-                                onCopyClick = { onNavigateToAddAppointment(appointment.id, true) },
-                                onDeleteClick = { viewModel.deleteAppointment(appointment) },
+                                onEditClick = { activeAppointmentDetails = appointment },
                                 onDoctorClick = { docId ->
                                     val doc = doctors.firstOrNull { it.id == docId }
                                     if (doc != null) {
@@ -294,6 +305,23 @@ fun CalendarScreen(
                     context.startActivity(intent)
                 } catch (e: Exception) {
                     Toast.makeText(context, "Karten-App konnte nicht geöffnet werden.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
+    }
+
+    if (activeAppointmentDetails != null) {
+        AppointmentDetailsDialog(
+            appointment = activeAppointmentDetails!!,
+            attachments = activeAppointmentAttachments,
+            onDismiss = { activeAppointmentDetails = null },
+            onEditClick = { onNavigateToAddAppointment(activeAppointmentDetails!!.id, false) },
+            onCopyClick = { onNavigateToAddAppointment(activeAppointmentDetails!!.id, true) },
+            onDeleteClick = { viewModel.deleteAppointment(activeAppointmentDetails!!) },
+            onDoctorClick = { docId ->
+                val doc = doctors.firstOrNull { it.id == docId }
+                if (doc != null) {
+                    activeDoctorDetails = doc
                 }
             }
         )

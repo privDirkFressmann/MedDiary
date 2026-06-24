@@ -29,8 +29,8 @@ import com.meddiary.ui.theme.CoralAlert
 fun AppointmentCard(
     appointment: Appointment,
     onEditClick: () -> Unit,
-    onCopyClick: () -> Unit,
-    onDeleteClick: () -> Unit,
+    onCopyClick: (() -> Unit)? = null,
+    onDeleteClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     onCheckedChange: () -> Unit = {},
     showCheckbox: Boolean = true,
@@ -171,20 +171,24 @@ fun AppointmentCard(
                 }
             }
             
-            IconButton(onClick = onCopyClick) {
-                Icon(
-                    imageVector = Icons.Default.ContentCopy,
-                    contentDescription = "Termin kopieren",
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                )
+            if (onCopyClick != null) {
+                IconButton(onClick = onCopyClick) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "Termin kopieren",
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                    )
+                }
             }
             
-            IconButton(onClick = onDeleteClick) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Termin löschen",
-                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-                )
+            if (onDeleteClick != null) {
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Termin löschen",
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                    )
+                }
             }
         }
     }

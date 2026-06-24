@@ -53,6 +53,11 @@ import com.meddiary.ui.MedicalViewModel
 import com.meddiary.ui.theme.AccentBlue
 import com.meddiary.ui.theme.CoralAlert
 import com.meddiary.ui.components.AppointmentCard
+import com.meddiary.data.Appointment
+import com.meddiary.data.Attachment
+import com.meddiary.ui.components.AppointmentDetailsDialog
+import kotlinx.coroutines.flow.flowOf
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,6 +86,14 @@ fun HomeScreen(
     
     val doctors by viewModel.allDoctors.collectAsState()
     var activeDoctorDetails by remember { mutableStateOf<Doctor?>(null) }
+    var activeAppointmentDetails by remember { mutableStateOf<Appointment?>(null) }
+    val activeAppointmentAttachments by remember(activeAppointmentDetails) {
+        if (activeAppointmentDetails != null) {
+            viewModel.getAttachmentsForAppointment(activeAppointmentDetails!!.id)
+        } else {
+            flowOf(emptyList())
+        }
+    }.collectAsState(initial = emptyList())
     var showAddPersonDialog by remember { mutableStateOf(false) }
     var showEditPersonDialog by remember { mutableStateOf(false) }
     var editingMember by remember { mutableStateOf<FamilyMember?>(null) }
@@ -534,9 +547,7 @@ fun HomeScreen(
                         showCheckbox = false,
                         useStrikethrough = false,
                         indicatorColor = color,
-                        onEditClick = { onNavigateToAddAppointment(appointment.id, false) },
-                        onCopyClick = { onNavigateToAddAppointment(appointment.id, true) },
-                        onDeleteClick = { viewModel.deleteAppointment(appointment) },
+                        onEditClick = { activeAppointmentDetails = appointment },
                         onDoctorClick = { docId ->
                             val doc = doctors.firstOrNull { it.id == docId }
                             if (doc != null) {
@@ -872,4 +883,22 @@ fun HomeScreen(
             }
         )
     }
+
+    if (activeAppointmentDetails != null) {
+        AppointmentDetailsDialog(
+            appointment = activeAppointmentDetails!!,
+            attachments = activeAppointmentAttachments,
+            onDismiss = { activeAppointmentDetails = null },
+            onEditClick = { onNavigateToAddAppointment(activeAppointmentDetails!!.id, false) },
+            onCopyClick = { onNavigateToAddAppointment(activeAppointmentDetails!!.id, true) },
+            onDeleteClick = { viewModel.deleteAppointment(activeAppointmentDetails!!) },
+            onDoctorClick = { docId ->
+                val doc = doctors.firstOrNull { it.id == docId }
+                if (doc != null) {
+                    activeDoctorDetails = doc
+                }
+            }
+        )
+    }
 }
+

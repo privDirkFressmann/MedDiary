@@ -162,7 +162,11 @@ fun VaccinationsScreen(
                 }
             }
 
-            TabRow(selectedTabIndex = selectedTab) {
+            ScrollableTabRow(
+                selectedTabIndex = selectedTab,
+                edgePadding = 16.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTab == index,
